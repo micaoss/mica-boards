@@ -2,6 +2,18 @@
 
 ## 2026-09-15 [progress]
 
+The s905x5m Bluetooth userland builds in the mica-build-env `c` image, pinned by
+digest in `locks/mica-build-env.lock`, instead of installing Debian's
+build-essential unpinned on `debian:trixie-slim`, so its compiler cannot move under
+an unchanged `mica-s905x5m-bluetooth` version (the payload is byte-identical to the
+0.1.0-1 build); the pool job's userland prefix cache is gone with that stage. A
+control template pins another producer's package by its literal version
+(`@VERSION@` only within one producer). `mica-s905x5m-bluetooth`,
+`mica-s905x5m-wireless`, `mica-s905x5m-wifi` and `mica-bm201-front-panel` are
+0.1.0-2 (epoch 1789473600).
+
+## 2026-09-15 [progress]
+
 Package versions (user decision, mica `docs/decisions/2026-09-15-package-versions.md`):
 a package is locked by its declared version and a release never changes it. Each
 producer declares `VERSION` and `SOURCE_DATE_EPOCH` in `version.env` beside its

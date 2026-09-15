@@ -29,8 +29,8 @@ name: build
 # variables and not secrets), which must hash to what trust-certificates.sha256
 # records at the commit being built.
 #
-# Caches only speed the build; every gate still runs. The kernel, U-Boot and
-# s905x5m userland builds cache their third-party prefix stage only (the
+# Caches only speed the build; every gate still runs. The kernel and U-Boot
+# builds cache their third-party prefix stage only (the
 # toolchain and the upstream source, common/scripts/buildx.sh), so every step
 # that takes this repository's inputs runs each time. Each job restores under a
 # key made of the locks and every file its prefix stages read, so a changed input
@@ -301,15 +301,7 @@ jobs:
       - name: The build-env release lock
         run: make deps
       - uses: docker/setup-buildx-action@v4
-      - name: Restore the userland prefix cache
-        id: cache
-        uses: actions/cache/restore@v6
-        with:
-          path: ${{ runner.temp }}/buildx-cache
-          key: pool-${{ matrix.arch }}-${{ hashFiles('locks/mica-build-env.lock', 'locks/upstream.lock', 'common/scripts/**', 'boards/*/Makefile', 'boards/*/userland/Dockerfile') }}
       - name: Pack the ${{ matrix.arch }} pool
-        env:
-          BUILDX_CACHE: ${{ runner.temp }}/buildx-cache
         run: make pool POOL_ARCH=${{ matrix.arch }} ${{ inputs.board != '' && format('POOL_BOARD={0}', inputs.board) || '' }}
       - name: The package versions against each board's latest release
         env:
@@ -325,23 +317,6 @@ jobs:
           done
       - name: The package gate over the ${{ matrix.arch }} pool, with its rebuild
         run: make package-gate GATE_ARGS="${{ inputs.board != '' && format('--board {0} ', inputs.board) || '' }}--arch ${{ matrix.arch }}"
-      # A pool with no prefix stage (amd64 builds no userland) writes no cache.
-      - name: Reduce the cache to this run's prefix stages
-        id: reduce
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.board == '' && steps.cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          rm -rf "${RUNNER_TEMP}/buildx-cache"
-          if [ -d "${RUNNER_TEMP}/buildx-cache.new" ]; then
-              mv "${RUNNER_TEMP}/buildx-cache.new" "${RUNNER_TEMP}/buildx-cache"
-              echo "save=true" >>"${GITHUB_OUTPUT}"
-          fi
-      - name: Save the userland prefix cache
-        if: steps.reduce.outputs.save == 'true'
-        uses: actions/cache/save@v6
-        with:
-          path: ${{ runner.temp }}/buildx-cache
-          key: ${{ steps.cache.outputs.cache-primary-key }}
       - name: The pool
         run: bash tools/ci-outputs.sh pack pool-${{ matrix.arch }} debs/${{ matrix.arch }}
       - uses: actions/upload-artifact@v7

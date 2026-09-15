@@ -58,7 +58,10 @@ package moves on its own:
     SOURCE_DATE_EPOCH=1789430400
 
 `<upstream>-<revision>`, with no commit, date, release or `.dirty` stamp and no
-epoch; `SOURCE_DATE_EPOCH` is bumped with it. A packaging-only change bumps the
+epoch; `SOURCE_DATE_EPOCH` is bumped with it. A control template pins a package
+of its own producer as `(= @VERSION@)` and a package of another producer by that
+package's literal version, so bumping a dependency edits its dependents'
+templates and bumps them too (the gate holds every exact pin to the pool). A packaging-only change bumps the
 revision; a change of what the package ships from upstream or source bumps the
 upstream part and resets the revision.
 

@@ -3,19 +3,16 @@
 # The sources are the minimal runtime set imported from s905x5m-alpine commit
 # 49618bed07508b77bb8e8e640e0faafc5c95ea9a.
 
-ARG MICA_IMAGE_DEBIAN_TRIXIE
-FROM --platform=$TARGETPLATFORM ${MICA_IMAGE_DEBIAN_TRIXIE} AS toolchain
+# The toolchain is the mica-build-env c image (Debian trixie's build-essential,
+# the glibc of the Base root), pinned by digest in locks/mica-build-env.lock:
+# no package is installed here, so the compiler cannot move under the
+# mica-s905x5m-bluetooth version without the lock moving.
+ARG MICA_BUILD_C
+FROM --platform=$TARGETPLATFORM ${MICA_BUILD_C} AS build
 ARG TARGETARCH
-
-RUN test "$TARGETARCH" = arm64 && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends build-essential binutils && \
-    rm -rf /var/lib/apt/lists/*
-
-# ---- the third-party prefix ends here: the toolchain, nothing of this
-# repository's (the only stage a CI cache holds; common/scripts/buildx.sh).
-FROM toolchain AS build
-ARG TARGETARCH
+RUN test "$TARGETARCH" = arm64
+# The image puts ccache in front of gcc; this build compiles without it.
+ENV CCACHE_DISABLE=1
 
 COPY versions.env /build/versions.env
 COPY skwbt /build/skwbt

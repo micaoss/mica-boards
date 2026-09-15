@@ -84,14 +84,15 @@ clean:
 firmware: uboot-package
 
 DEBIAN_ARG := MICA_IMAGE_DEBIAN_TRIXIE=upstream:debian:trixie-slim
+USERLAND_ARG := MICA_BUILD_C=mica-build-env:c
 UBOOT_ARTIFACTS := $(BSP_OUT)/uboot/u-boot.bin.signed \
 	$(BSP_OUT)/uboot/u-boot.bin.sd.bin.signed \
 	$(BSP_OUT)/uboot/DDR.USB
 UBOOT_PACKAGE_DIR := $(BSP_OUT)/uboot-package
 
 userland:
-	IMG="$$(bash $(FROM_SH) $(DEBIAN_ARG))" && \
-	bash ../../common/scripts/buildx.sh s905x5m-userland toolchain --label ai-agent=true -t ai-agent/mica-s905x5m-userland --platform linux/arm64 --target artifact \
+	IMG="$$(bash $(FROM_SH) $(USERLAND_ARG))" && \
+	docker buildx build --label ai-agent=true --platform linux/arm64 --target artifact \
 	  -f userland/Dockerfile $$IMG -o $(BSP_OUT)/userland userland
 
 # Packaging is a separate consumer of the section-3 U-Boot artifact interface.
