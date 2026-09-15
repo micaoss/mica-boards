@@ -8,6 +8,7 @@
 package	mica-board-x64
 file	board	board.env
 file	board	evidence.json
+file	board	images.tsv
 file	board	manifests/board.pkgs
 file	board	outputs.tsv
 file	board	trust/verity-signer.cert.pem

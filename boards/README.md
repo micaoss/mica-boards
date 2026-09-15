@@ -25,14 +25,15 @@ sorted by kind (package, file), then value:
 ```
 package	<package>                  an archive of its pool, pool.<board>.<arch>.<release>
 file	<component>	<path>           a file of one component artifact, <component>.<board>.<release>, by its
-                                   path in the assembled board tree: board (board.env, evidence.json, manifests/,
+                                   path in the assembled board tree: board (board.env, evidence.json, images.tsv, manifests/,
                                    outputs.tsv, trust/), kernel (kernel/), uboot (uboot/, uboot-package/),
                                    firmware (firmware/, component-copyright)
 ```
 
 ```
 boards/<board>/
-  board.env             the board definition: BOARD_FEATURES, IMAGE_KINDS, MICA_ARCH, the boot backend, ...
+  board.env             the board definition: BOARD_FEATURES, MICA_ARCH, the boot backend, ...
+  images.tsv            what the board is flashed with: image <kind> <packer> <runtime image> <suffix> (disk builtin mandatory)
   outputs.tsv           what a release of the board outputs: its pool's packages and each component's files
   Makefile              sets BOARD; the kernel and firmware targets and the board's own (flashing, a recovery package, a userland bridge)
   bsp.env               FIT boards: what the builds take (KERNEL_EXPECT, KERNEL_CONFIG, KERNEL_DTB, KERNEL_DTB_ARTIFACT, UBOOT_DEFCONFIG, DDR_BLOB, BL31_BLOB, KERNEL_FRAGMENTS)

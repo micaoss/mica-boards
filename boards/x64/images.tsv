@@ -1,0 +1,6 @@
+# mica-boards images v1
+# What this board can be flashed with; it travels in its board component. Tab-separated rows
+#   image	<kind>	<packer>	<runtime image>	<suffix>
+# `disk` is mandatory and `builtin` (the assembly's raw disk image); any other kind names a packer in the
+# board's packer component. The runtime image is a mica-build-env:<name> image row of locks/mica-build-env.lock.
+image	disk	builtin	mica-build-env:base	img

@@ -2,6 +2,16 @@
 
 ## 2026-09-15 [progress]
 
+Flashing formats (user decision): every board declares what it is flashed with in
+`boards/<board>/images.tsv` (`# mica-boards images v1`; rows `image <kind> <packer>
+<runtime image> <suffix>`), carried in its board component and covered by its
+inputs hash. All four boards declare `image disk builtin mica-build-env:base img`.
+`IMAGE_KINDS` is gone from `board.env`; `board-contract-test` requires the disk row
+with `builtin`, no other `builtin` kind, unique kinds and suffixes, and runtime
+images named by `locks/mica-build-env.lock`.
+
+## 2026-09-15 [progress]
+
 Board components (user decision, mica 1cd0fdd): a board release publishes its
 components as separate artifacts, `<component>.<board>.<YYYYMMDD-HHMM>` --
 board, kernel, and uboot and firmware where the board has them

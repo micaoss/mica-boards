@@ -6,7 +6,7 @@
 #   bash tools/component.sh list <board>                      board, kernel, and uboot and firmware where it has them
 #   bash tools/component.sh stage <board> <component> <dir>   <dir>: exactly the component's files of its outputs.tsv
 #
-#   board     board.env, evidence.json, manifests/, outputs.tsv, trust/verity-signer.cert.pem
+#   board     board.env, evidence.json, images.tsv, manifests/, outputs.tsv, trust/verity-signer.cert.pem
 #   kernel    kernel/ from _out/<board>/kernel (a FIT board's kernel/dev/ and kernel/prod/)
 #   uboot     uboot/ (and uboot-package/) from the board's loader build, by its FIRMWARE_FORMAT
 #   firmware  firmware/<BOARD_FIRMWARE_FILES> and component-copyright
@@ -38,6 +38,7 @@ stage() { # <board> <component> <dir>
     board)
         install -m 0644 "${src}/board.env" "${dir}/board.env"
         install -m 0644 "${src}/outputs.tsv" "${dir}/outputs.tsv"
+        install -m 0644 "${src}/images.tsv" "${dir}/images.tsv"
         [ ! -f "${src}/evidence.json" ] || install -m 0644 "${src}/evidence.json" "${dir}/evidence.json"
         tree "${src}/manifests" "${dir}/manifests"
         f="${VERITY_TRUST_CERT:-${REPO_ROOT}/meta/verity/signer.cert.pem}"

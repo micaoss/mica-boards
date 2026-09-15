@@ -3,8 +3,12 @@
 # 20260913-0416): every board directory declares what the assembly reads
 # out of its bundle, and nothing the bundle no longer carries.
 #
-#   - board.env declares BOARD_FEATURES (a subset of the vocabulary below) and
-#     IMAGE_KINDS (a subset of its vocabulary), as plain KEY=value lines;
+#   - board.env declares BOARD_FEATURES (a subset of the vocabulary below) as a
+#     plain KEY=value line, and no IMAGE_KINDS;
+#   - images.tsv (`# mica-boards images v1`, rows image <kind> <packer> <runtime
+#     image> <suffix>) has a `disk` row with the packer `builtin`, no other kind is
+#     `builtin`, kinds and suffixes are unique, and every runtime image is a
+#     mica-build-env:<name> image row of locks/mica-build-env.lock;
 #   - the board carries its whole build (boards/README.md): Makefile,
 #     kernel/Dockerfile and a git row <board>-kernel in locks/upstream.lock; a FIT
 #     board also bsp.env, a git row <board>-uboot,
@@ -24,7 +28,6 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 FEATURE_VOCABULARY="wifi bluetooth display status-led can usb-gadget audio containers"
-IMAGE_KIND_VOCABULARY="disk rockchip-update"
 
 FAIL_N=0
 PASS_N=0
@@ -55,20 +58,37 @@ for dir in boards/*/; do
     [ -f "boards/${board}/board.env" ] || continue
     boards=$((boards + 1))
 
-    for key in BOARD_FEATURES IMAGE_KINDS; do
-        if ! value="$(plain_value "boards/${board}/board.env" "${key}")"; then
-            fail "boards/${board}/board.env declares no ${key} (or not as a plain KEY=value line)"
-            continue
-        fi
-        case "${key}" in
-        BOARD_FEATURES)
-            for f in ${value}; do in_list "${f}" ${FEATURE_VOCABULARY} || fail "${board}: BOARD_FEATURES names '${f}', not in: ${FEATURE_VOCABULARY}"; done ;;
-        IMAGE_KINDS)
-            [ -n "${value}" ] || fail "${board}: IMAGE_KINDS is empty; a board with no image kind produces nothing"
-            for k in ${value}; do in_list "${k}" ${IMAGE_KIND_VOCABULARY} || fail "${board}: IMAGE_KINDS names '${k}', not in: ${IMAGE_KIND_VOCABULARY}"; done ;;
-        esac
+    if value="$(plain_value "boards/${board}/board.env" BOARD_FEATURES)"; then
+        for f in ${value}; do in_list "${f}" ${FEATURE_VOCABULARY} || fail "${board}: BOARD_FEATURES names '${f}', not in: ${FEATURE_VOCABULARY}"; done
         pass
-    done
+    else
+        fail "boards/${board}/board.env declares no BOARD_FEATURES (or not as a plain KEY=value line)"
+    fi
+    ! grep -q '^IMAGE_KINDS=' "boards/${board}/board.env" || fail "${board}: board.env declares IMAGE_KINDS; the image kinds are boards/${board}/images.tsv"
+
+    # images.tsv: what the board is flashed with.
+    images="boards/${board}/images.tsv"
+    if [ ! -f "${images}" ]; then
+        fail "${images} is missing; every board declares at least its disk image"
+    elif [ "$(head -n1 "${images}")" != "# mica-boards images v1" ]; then
+        fail "${images}: line 1 is not '# mica-boards images v1'"
+    else
+        rows="$(grep -v '^#' "${images}" || true)"
+        bad="$(awk -F'\t' '$1 != "image" || NF != 5 || $2 !~ /^[a-z0-9][a-z0-9-]*$/ || $3 == "" || $4 == "" || $5 !~ /^[a-z0-9][a-z0-9.-]*$/' <<<"${rows}")"
+        [ -z "${bad}" ] || fail "${images}: rows that are not image TAB <kind> TAB <packer> TAB <runtime image> TAB <suffix>: ${bad}"
+        [ "$(awk -F'\t' '$2 == "disk" && $3 == "builtin"' <<<"${rows}" | wc -l)" = 1 ] || fail "${images}: no single disk row with the packer builtin; disk is the canonical image every other kind derives from"
+        [ -z "$(awk -F'\t' '$2 != "disk" && $3 == "builtin"' <<<"${rows}")" ] || fail "${images}: a kind other than disk names the packer builtin; only the disk image is the assembly's own"
+        [ -z "$(cut -f2 <<<"${rows}" | sort | uniq -d)" ] || fail "${images}: a kind is declared twice"
+        [ -z "$(cut -f5 <<<"${rows}" | sort | uniq -d)" ] || fail "${images}: a suffix is declared twice"
+        while IFS=$'\t' read -r _kind kind _packer runtime _suffix; do
+            case "${runtime}" in
+            mica-build-env:*) awk -F'\t' -v n="${runtime#mica-build-env:}" '$1 == "image" && $2 == "mica-build-env" && $3 == n { f = 1 } END { exit !f }' locks/mica-build-env.lock ||
+                fail "${images}: ${kind} runs in ${runtime}, which locks/mica-build-env.lock names no image row for" ;;
+            *) fail "${images}: ${kind} runs in '${runtime}', not a mica-build-env:<name> image of locks/mica-build-env.lock" ;;
+            esac
+        done <<<"${rows}"
+        pass
+    fi
     features="$(plain_value "boards/${board}/board.env" BOARD_FEATURES || true)"
 
     # The board's own build: nothing of it lives outside the board but common/.

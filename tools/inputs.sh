@@ -21,7 +21,7 @@
 #             uboot and rkbin git rows, the board's source rows, the ubuntu and debian image rows, the
 #             boot certificate, the builder
 #   firmware  boards/<board>/firmware/ and board.env's BOARD_FIRMWARE_FILES
-#   board     board.env, evidence.json, manifests/, outputs.tsv, the verity certificate
+#   board     board.env, evidence.json, images.tsv, manifests/, outputs.tsv, the verity certificate
 #
 # VERITY_TRUST_CERT and FIT_TRUST_CERT name the certificates (default meta/verity/
 # and meta/boot/signer.cert.pem). The builder is the runner a release builds on:
@@ -90,7 +90,7 @@ FIT="${FIT_TRUST_CERT:-meta/boot/signer.cert.pem}"
         env_value BOARD_FIRMWARE_FILES
         ;;
     board)
-        files "${B}/board.env" "${B}/evidence.json" "${B}/manifests" "${B}/outputs.tsv"
+        files "${B}/board.env" "${B}/evidence.json" "${B}/images.tsv" "${B}/manifests" "${B}/outputs.tsv"
         cert verity "${VERITY}"
         ;;
     esac

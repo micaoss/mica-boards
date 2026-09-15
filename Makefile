@@ -30,7 +30,7 @@ help:
 	@echo "  trust-stage-test    common/trust/stage.sh validates and stages a public certificate bundle, and refuses anything else (docker)"
 	@echo "  uboot-env-test      the FIT loaders' environment entry decodes the assembly's layout and round-trips (docker)"
 	@echo "  publish-test        the publishers and the lock writer against a local registry container: component and pool tags, reuse, every refusal (docker)"
-	@echo "  board-contract-test every board declares BOARD_FEATURES and IMAGE_KINDS, carries its own kernel and U-Boot build and manifests/, and is listed in boards/boards.tsv with its outputs.tsv"
+	@echo "  board-contract-test every board declares BOARD_FEATURES and its images.tsv, carries its own kernel and U-Boot build and manifests/, and is listed in boards/boards.tsv with its outputs.tsv"
 	@echo "  kernel-config-test  every board's committed kernel config carries the shared floor (common/kernel/kernel-config-test.sh)"
 	@echo "  locks-test          the lock checker over the release-lock vectors, the committed locks and every Dockerfile's syntax pin"
 	@echo "  lint                shell hygiene of the tree"

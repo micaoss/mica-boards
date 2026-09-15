@@ -76,7 +76,7 @@ check() {
         [ "$(components "${board}" | sort | tr '\n' ' ')" = "$(bash "${REPO_ROOT}/tools/component.sh" list "${board}" | sort | tr '\n' ' ')" ] ||
             die "${f} names files of the components $(components "${board}" | tr '\n' ' ')but ${board} has $(bash "${REPO_ROOT}/tools/component.sh" list "${board}" | tr '\n' ' ')(tools/component.sh)"
         files "${board}" board >"${WORK}/c"
-        for p in board.env manifests/board.pkgs outputs.tsv trust/verity-signer.cert.pem; do grep -qx -- "${p}" "${WORK}/c" || die "${f} lists no board file ${p}"; done
+        for p in board.env images.tsv manifests/board.pkgs outputs.tsv trust/verity-signer.cert.pem; do grep -qx -- "${p}" "${WORK}/c" || die "${f} lists no board file ${p}"; done
         ! grep -qE '^(kernel|uboot|uboot-package|firmware)/|^component-copyright$' "${WORK}/c" || die "${f} lists a kernel, uboot or firmware file in the board component"
         files "${board}" kernel >"${WORK}/c"
         ! grep -qv '^kernel/' "${WORK}/c" || die "${f} lists a kernel component file outside kernel/"
