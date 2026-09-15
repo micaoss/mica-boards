@@ -42,13 +42,14 @@ staged() {
 }
 # refused <name> <input> <message>: non-zero, the message, and the parent holds nothing.
 refused() {
-    local name="$1" input="$2" want="$3" parent="${WORK}/ctx-$1"
+    local name="$1" input="$2" want="$3" parent="${WORK}/ctx-$1" left
     if bash "${STAGE}" "${input}" "${parent}" >"${WORK}/$1.out" 2>&1; then
         fail "${name}: staged"
     elif ! grep -c -- "${want}" "${WORK}/$1.out" >/dev/null; then
         fail "${name}: refused without '${want}': $(tail -n2 "${WORK}/$1.out")"
     elif [ -n "$(find "${parent}" -mindepth 1 2>/dev/null)" ]; then
-        fail "${name}: refused but left $(find "${parent}" -mindepth 1 | head -n3 | tr '\n' ' ')"
+        left="$(find "${parent}" -mindepth 1)"
+        fail "${name}: refused but left $(printf '%s\n' "${left}" | tr '\n' ' ')"
     else
         pass "${name}: refused, nothing staged"
     fi

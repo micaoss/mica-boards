@@ -34,7 +34,7 @@ trap 'rm -rf "$WORK"' EXIT
 [ -r "$SCRIPT" ] || { echo "no $SCRIPT to test" >&2; exit 1; }
 [ -r "$CONF_SRC" ] || { echo "no $CONF_SRC to read the gadget name from" >&2; exit 1; }
 
-NAME=$(sed -n 's/^name=//p' "$CONF_SRC" | head -n1)
+NAME=$(sed -n '/^name=/{s/^name=//;p;q;}' "$CONF_SRC")
 [ -n "$NAME" ] || { echo "$CONF_SRC declares no name=" >&2; exit 1; }
 
 fail() { echo "FAIL $*" >&2; exit 1; }

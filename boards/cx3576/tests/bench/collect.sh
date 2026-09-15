@@ -800,8 +800,13 @@ api_get() {
 # clever regex pretending to be one would fail silently on exactly the nested
 # document nobody checked.
 json_tokens() { tr ',{}[]' '\n\n\n\n\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$'; }
+# The first match is taken from a captured value, not with `| head -n1`: head
+# exits at that line and the producer dies of SIGPIPE, which pipefail reports as
+# a failed pipeline.
 json_scalar() {
-    json_tokens | sed -n "s/^\"$1\"[[:space:]]*:[[:space:]]*//p" | head -n1 | sed 's/^"//;s/"$//'
+    local matches
+    matches="$(json_tokens | sed -n "s/^\"$1\"[[:space:]]*:[[:space:]]*//p")"
+    printf '%s\n' "${matches%%$'\n'*}" | sed 's/^"//;s/"$//'
 }
 
 # --- cycle accumulators -----------------------------------------------------
@@ -1155,7 +1160,8 @@ stage_network() {
         [ -e "$i" ] || continue
         i=$(basename "$i")
         cap "lease-$i" -- networkctl status "$i"
-        lease=$(busybox ip -4 addr show "$i" 2>/dev/null | sed -n 's/.*inet \([0-9.]*\/[0-9]*\).*/\1/p' | head -n1)
+        lease=$(busybox ip -4 addr show "$i" 2>/dev/null | sed -n 's/.*inet \([0-9.]*\/[0-9]*\).*/\1/p')
+        lease=${lease%%$'\n'*}
         if [ -n "$lease" ]; then
             measure "M1-LEASE-$i" "has an IPv4 address: $lease"
         else
@@ -1194,7 +1200,8 @@ stage_fieldbus() {
     cap otg-mode    -- sh -c 'cat /sys/devices/platform/*/*/otg_mode 2>/dev/null'
 
     local bitrate
-    bitrate=$(networkctl status can0 2>/dev/null | sed -n 's/^ *Bit Rate: *//p' | head -n1)
+    bitrate=$(networkctl status can0 2>/dev/null | sed -n 's/^ *Bit Rate: *//p')
+    bitrate=${bitrate%%$'\n'*}
     measure CAN-BITRATE "${bitrate:-not read} (can.conf ships 250000, fd off, restart-ms 100)"
     if have cansend && have candump; then
         measure CAN-TOOLS "cansend and candump are present; frames can be driven from the device"

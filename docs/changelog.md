@@ -2,6 +2,22 @@
 
 ## 2026-09-15 [progress]
 
+Early-exiting readers on the right of a pipe, the defect class mica docs found in
+its own gate. Fixed here: `tools/deb/registry.sh` held `printf | grep -qxF` as the
+membership test for the release tag -- under `pipefail` it reports failure exactly
+when the tag is found and the writer still has bytes to write, so a release whose
+HEAD carried several tags could fail on the tag it had -- now a loop; and the
+`| head -n1` pipelines of `tools/component.sh`, `tools/deb/producers.sh`,
+`tools/kernel-config-test.sh`, `tools/new-board.sh`, `tests/board-contract-test.sh`
+(`grep -m1`), `tools/deb/oci.sh` (an `awk ... exit` over the header file),
+`boards/cx3576/tests/{kernel-cmdline-test,gadget-configfs-test}.sh` and
+`boards/cx3576/tests/bench/collect.sh` (three), where a second match would kill the
+producer with SIGPIPE. `tests/shell-lint.sh` now also scans a library sourced by a
+file that sets pipefail -- registry.sh was out of its scope, which is why the defect
+survived there.
+
+## 2026-09-15 [progress]
+
 cx3576 flashing, three fixes found while writing the product documentation's
 flashing guide: `loader/MiniLoaderAll.bin.sha256` named `uboot/MiniLoaderAll.bin`,
 so `make flash-maskrom` failed at its checksum step before reaching

@@ -44,7 +44,7 @@ while IFS= read -r f; do
 done < <(find "boards/${NEW}" -type f)
 # 4. Fresh identities. Every board's GUIDs and filesystem UUIDs share the
 #    prefix 5AC35760 and a per-board 4-hex code; the code is what changes.
-old_code="$(sed -n 's/^DISK_GUID=[0-9A-Fa-f]\{8\}-\([0-9A-Fa-f]\{4\}\)-.*/\1/p' "boards/${NEW}/board.env" | head -1)"
+old_code="$(sed -n '/^DISK_GUID=/{s/^DISK_GUID=[0-9A-Fa-f]\{8\}-\([0-9A-Fa-f]\{4\}\)-.*/\1/;p;q;}' "boards/${NEW}/board.env")"
 [ -n "${old_code}" ] || { echo "error: ${NEW}/board.env has no DISK_GUID of the form XXXXXXXX-CCCC-...; the identity code could not be replaced" >&2; exit 1; }
 new_code="$(uuidgen | tr -d '-' | cut -c1-4 | tr 'a-f' 'A-F')"
 sed -i -E "s/^(([A-Z_]+_GUID)=[0-9A-F]{8})-${old_code}-/\1-${new_code}-/; s/^(([A-Z_]+_FS_UUID)=[0-9a-f]{8})-$(printf '%s' "${old_code}" | tr 'A-F' 'a-f')-/\1-$(printf '%s' "${new_code}" | tr 'A-F' 'a-f')-/" "boards/${NEW}/board.env"

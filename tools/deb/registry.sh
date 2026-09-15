@@ -66,7 +66,12 @@ release_load() {
     tags="$(git -C "${REGISTRY_REPO_ROOT}" tag --points-at HEAD | grep -E '^[a-z0-9][a-z0-9-]*/[0-9]{8}-[0-9]{4}$' || true)"
     [ -n "${tags}" ] || { echo "error: HEAD ${RELEASE_COMMIT:0:12} carries no release tag <board>/YYYYMMDD-HHMM; publishing runs only for a release (gh release create <board>/<YYYYMMDD-HHMM> --target <commit>)" >&2; return 1; }
     if [ -n "${MICA_RELEASE_TAG:-}" ]; then
-        printf '%s\n' "${tags}" | grep -qxF -- "${MICA_RELEASE_TAG}" || {
+        # A loop, not `printf | grep -q`: the reader exits at the first match and
+        # the writer dies of SIGPIPE, which pipefail reports as a failed pipeline
+        # -- the answer inverted exactly when the tag IS there.
+        local tag found=""
+        while IFS= read -r tag; do [ "${tag}" != "${MICA_RELEASE_TAG}" ] || found=1; done <<<"${tags}"
+        [ -n "${found}" ] || {
             echo "error: the release event names ${MICA_RELEASE_TAG}, and HEAD carries $(printf '%s ' ${tags})" >&2
             return 1
         }

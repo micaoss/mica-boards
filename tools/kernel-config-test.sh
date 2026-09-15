@@ -12,7 +12,7 @@ for env in boards/*/board.env; do
     if [ ! -f "boards/${board}/bsp.env" ]; then
         config="boards/${board}/kernel/config/${board}.config"; gate="boards/${board}/kernel/Dockerfile"
     else
-        name="$(sed -n 's/^KERNEL_CONFIG=//p' "boards/${board}/bsp.env" | head -1)"
+        name="$(sed -n '/^KERNEL_CONFIG=/{s/^KERNEL_CONFIG=//;p;q;}' "boards/${board}/bsp.env")"
         [ -n "${name}" ] || { echo "error: boards/${board}/bsp.env declares no KERNEL_CONFIG" >&2; exit 1; }
         config="boards/${board}/kernel/config/${name}"; gate="boards/${board}/kernel/configure.sh"
     fi

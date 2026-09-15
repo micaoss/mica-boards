@@ -19,7 +19,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 die() { echo "component.sh: error: $*" >&2; exit 1; }
 
-value() { sed -n "s/^$2=\"\{0,1\}\([^\"]*\)\"\{0,1\}\$/\1/p" "${REPO_ROOT}/boards/$1/board.env" | head -1; }
+# The first match, taken in sed: `| head -1` would leave sed writing into a
+# closed pipe, which pipefail reports as a failure.
+value() { sed -n "/^$2=/{s/^$2=\"\{0,1\}\([^\"]*\)\"\{0,1\}\$/\1/;p;q;}" "${REPO_ROOT}/boards/$1/board.env"; }
 list() { # <board>
     echo board
     echo kernel

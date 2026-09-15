@@ -137,7 +137,7 @@ oci_blob_put() {
     out="$(mktemp)"
     status="$(oci_request POST "${repo}" pull,push "blobs/uploads/" "${out}" -D "${out}.h" -H 'Content-Length: 0')"
     [ "${status}" = 202 ] || { echo "error: starting an upload to ${OCI_HOST}/${repo} answered HTTP ${status}: $(head -c 200 "${out}")" >&2; rm -f "${out}" "${out}.h"; return 1; }
-    location="$(tr -d '\r' <"${out}.h" | sed -n 's/^[Ll]ocation: //p' | head -n1)"
+    location="$(awk 'tolower($1) == "location:" { sub(/\r$/, "", $2); print $2; exit }' "${out}.h")"
     rm -f "${out}.h"
     [ -n "${location}" ] || { echo "error: the upload to ${OCI_HOST}/${repo} came with no Location" >&2; rm -f "${out}"; return 1; }
     case "${location}" in /*) location="${OCI_URL}${location}" ;; esac

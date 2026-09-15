@@ -116,7 +116,7 @@ for env_file in ${ENVS[@]+"${ENVS[@]}"}; do
     # producer's row is <producer>@<instance>. A producer without FOR_EACH
     # is one instance, itself.
     # Read, not sourced: the other values may name the instance's variables.
-    for_each="$(sed -n 's/^FOR_EACH=//p' "${env_file}" | head -n1 | sed 's/^"\(.*\)"$/\1/')"
+    for_each="$(sed -n '/^FOR_EACH=/{s/^FOR_EACH=//;s/^"\(.*\)"$/\1/;p;q;}' "${env_file}")"
     instances=("")
     if [ -n "${for_each}" ]; then
         instances=()

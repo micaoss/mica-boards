@@ -72,13 +72,31 @@ fi
 mapfile -t files < <(git ls-files '*.sh' 'hack/*' | sort -u)
 [ "${#files[@]}" -gt 0 ] || { echo "error: no shell scripts found; this lint would pass by finding nothing" >&2; exit 1; }
 
+# A SOURCED LIBRARY RUNS UNDER ITS CALLER'S OPTIONS, so it is in scope even
+# though it sets none of its own. tools/deb/registry.sh is the case that taught
+# this: it is sourced by the publishers, which set pipefail, and it held a
+# `printf | grep -q` membership test that this lint never saw.
+sourced=" "
+for f in "${files[@]}"; do
+    [ -f "${f}" ] || continue
+    grep -c 'pipefail' "${f}" >/dev/null || continue
+    while IFS= read -r lib; do
+        for candidate in "${files[@]}"; do
+            [ "${candidate##*/}" = "${lib##*/}" ] || continue
+            case "${sourced}" in *" ${candidate} "*) ;; *) sourced="${sourced}${candidate} " ;; esac
+        done
+    done < <(sed -n 's/^[[:space:]]*\(\.\|source\)[[:space:]][[:space:]]*"\{0,1\}\([^"]*\.sh\)"\{0,1\}[[:space:]]*$/\2/p' "${f}")
+done
+
 scanned=0
 for f in "${files[@]}"; do
     [ -f "${f}" ] || continue
     # The WHOLE file, not its first N lines: `set -euo pipefail` does not have
     # to be near the top, and a scoping heuristic that quietly excludes files
     # is indistinguishable, in the output, from a tree that is clean.
-    grep -c 'pipefail' "${f}" >/dev/null || continue
+    if ! grep -c 'pipefail' "${f}" >/dev/null; then
+        case "${sourced}" in *" ${f} "*) ;; *) continue ;; esac
+    fi
     scanned=$((scanned + 1))
     # A pipe, optional whitespace, then grep with -q among its flags; comment
     # lines dropped afterwards so prose about the trap is not an instance of it.
@@ -86,7 +104,7 @@ for f in "${files[@]}"; do
         grep -vE '^[0-9]+:[[:space:]]*#' || true)"
     if [ -n "${hits}" ]; then
         while IFS= read -r h; do
-            fail "${f}:${h%%:*}: an early-exiting grep on the right of a pipe, in a file that sets pipefail: the pipeline reports failure when the pattern IS found. Use 'grep -c ... >/dev/null'"
+            fail "${f}:${h%%:*}: an early-exiting grep on the right of a pipe, in a file that sets pipefail or is sourced by one: the pipeline reports failure when the pattern IS found. Use 'grep -c ... >/dev/null', or a loop for a membership test"
         done <<<"${hits}"
     else
         pass "${f} pipes nothing into an early-exiting grep"

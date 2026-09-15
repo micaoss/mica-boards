@@ -8,8 +8,8 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 config=kernel/config/kernel-cx3576z.config
-kernel="$(sed -n 's/^CONFIG_CMDLINE="\(.*\)"$/\1/p' "${config}" | head -1)"
-board="$(sed -n 's/^BOARD_CMDLINE_ARGS="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' board.env | head -1)"
+kernel="$(sed -n '/^CONFIG_CMDLINE="/{s/^CONFIG_CMDLINE="\(.*\)"$/\1/;p;q;}' "${config}")"
+board="$(sed -n '/^BOARD_CMDLINE_ARGS=/{s/^BOARD_CMDLINE_ARGS="\{0,1\}\([^"]*\)"\{0,1\}$/\1/;p;q;}' board.env)"
 [ -n "${kernel}" ] || { echo "FAIL: ${config} declares no CONFIG_CMDLINE" >&2; exit 1; }
 [ -n "${board}" ] || { echo "FAIL: board.env declares no BOARD_CMDLINE_ARGS" >&2; exit 1; }
 grep -qx 'CONFIG_CMDLINE_FORCE=y' "${config}" || { echo "FAIL: ${config} does not force the command line (CONFIG_CMDLINE_FORCE=y)" >&2; exit 1; }

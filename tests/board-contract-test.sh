@@ -40,7 +40,7 @@ in_list() { local n="$1"; shift; local i; for i in "$@"; do [ "$i" != "$n" ] || 
 # KEY=value or KEY="value", nothing else; the value without its quotes.
 plain_value() {
     local line
-    line="$(grep -E "^$2=" "$1" | head -1 || true)"
+    line="$(grep -m1 -E "^$2=" "$1" || true)"
     [ -n "${line}" ] || return 1
     case "${line}" in *'$('* | *'`'* | *'${'*) return 2 ;; esac
     line="${line#*=}"
