@@ -33,7 +33,8 @@ file	<component>	<path>           a file of one component artifact, <component>.
 ```
 boards/<board>/
   board.env             the board definition: BOARD_FEATURES, MICA_ARCH, the boot backend, ...
-  images.tsv            what the board is flashed with: image <kind> <packer> <runtime image> <suffix> (disk builtin mandatory)
+  images.tsv            what the board is flashed and updated with: image|update <kind> <packer> <runtime image> <suffix>
+                        (image disk builtin and update full mandatory; builtin rows name - as runtime image)
   outputs.tsv           what a release of the board outputs: its pool's packages and each component's files
   Makefile              sets BOARD; the kernel and firmware targets and the board's own (flashing, a recovery package, a userland bridge)
   bsp.env               FIT boards: what the builds take (KERNEL_EXPECT, KERNEL_CONFIG, KERNEL_DTB, KERNEL_DTB_ARTIFACT, UBOOT_DEFCONFIG, DDR_BLOB, BL31_BLOB, KERNEL_FRAGMENTS)

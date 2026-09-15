@@ -2,6 +2,15 @@
 
 ## 2026-09-15 [progress]
 
+`images.tsv` declares update packages too: every board has `image disk builtin -
+img` and `update full|root|kernel builtin - micaupd|root.micaupd|kernel.micaupd`.
+`board-contract-test`: an image disk builtin row and an update full row, builtin
+only on disk among images, update kinds full, root and kernel (all builtin), `-` as
+the runtime image of a builtin row and a build-env image row otherwise, kinds and
+suffixes unique within each row type.
+
+## 2026-09-15 [progress]
+
 Workflow outputs travel as uniquely named tars (`tools/ci-outputs.sh`), uploaded
 as `<scope>-<name>` and downloaded with `merge-multiple`: a board release's single
 pool artifact failed `build / pools` because `download-artifact` extracts a single

@@ -5,10 +5,12 @@
 #
 #   - board.env declares BOARD_FEATURES (a subset of the vocabulary below) as a
 #     plain KEY=value line, and no IMAGE_KINDS;
-#   - images.tsv (`# mica-boards images v1`, rows image <kind> <packer> <runtime
-#     image> <suffix>) has a `disk` row with the packer `builtin`, no other kind is
-#     `builtin`, kinds and suffixes are unique, and every runtime image is a
-#     mica-build-env:<name> image row of locks/mica-build-env.lock;
+#   - images.tsv (`# mica-boards images v1`, rows image|update <kind> <packer>
+#     <runtime image> <suffix>) has an `image disk builtin` row and an `update full`
+#     row; only disk among image kinds is builtin; update kinds are full, root and
+#     kernel, all builtin; a builtin row names `-` as its runtime image, any other a
+#     mica-build-env:<name> image row of locks/mica-build-env.lock; kinds and
+#     suffixes are unique within each row type;
 #   - the board carries its whole build (boards/README.md): Makefile,
 #     kernel/Dockerfile and a git row <board>-kernel in locks/upstream.lock; a FIT
 #     board also bsp.env, a git row <board>-uboot,
@@ -66,25 +68,35 @@ for dir in boards/*/; do
     fi
     ! grep -q '^IMAGE_KINDS=' "boards/${board}/board.env" || fail "${board}: board.env declares IMAGE_KINDS; the image kinds are boards/${board}/images.tsv"
 
-    # images.tsv: what the board is flashed with.
+    # images.tsv: what the board is flashed and updated with.
     images="boards/${board}/images.tsv"
     if [ ! -f "${images}" ]; then
-        fail "${images} is missing; every board declares at least its disk image"
+        fail "${images} is missing; every board declares at least its disk image and its full update"
     elif [ "$(head -n1 "${images}")" != "# mica-boards images v1" ]; then
         fail "${images}: line 1 is not '# mica-boards images v1'"
     else
         rows="$(grep -v '^#' "${images}" || true)"
-        bad="$(awk -F'\t' '$1 != "image" || NF != 5 || $2 !~ /^[a-z0-9][a-z0-9-]*$/ || $3 == "" || $4 == "" || $5 !~ /^[a-z0-9][a-z0-9.-]*$/' <<<"${rows}")"
-        [ -z "${bad}" ] || fail "${images}: rows that are not image TAB <kind> TAB <packer> TAB <runtime image> TAB <suffix>: ${bad}"
-        [ "$(awk -F'\t' '$2 == "disk" && $3 == "builtin"' <<<"${rows}" | wc -l)" = 1 ] || fail "${images}: no single disk row with the packer builtin; disk is the canonical image every other kind derives from"
-        [ -z "$(awk -F'\t' '$2 != "disk" && $3 == "builtin"' <<<"${rows}")" ] || fail "${images}: a kind other than disk names the packer builtin; only the disk image is the assembly's own"
-        [ -z "$(cut -f2 <<<"${rows}" | sort | uniq -d)" ] || fail "${images}: a kind is declared twice"
-        [ -z "$(cut -f5 <<<"${rows}" | sort | uniq -d)" ] || fail "${images}: a suffix is declared twice"
-        while IFS=$'\t' read -r _kind kind _packer runtime _suffix; do
+        bad="$(awk -F'\t' '($1 != "image" && $1 != "update") || NF != 5 || $2 !~ /^[a-z0-9][a-z0-9-]*$/ || $3 == "" || $4 == "" || $5 !~ /^[a-z0-9][a-z0-9.-]*$/' <<<"${rows}")"
+        [ -z "${bad}" ] || fail "${images}: rows that are not image|update TAB <kind> TAB <packer> TAB <runtime image> TAB <suffix>: ${bad}"
+        [ "$(awk -F'\t' '$1 == "image" && $2 == "disk" && $3 == "builtin"' <<<"${rows}" | wc -l)" = 1 ] || fail "${images}: no single image disk row with the packer builtin; disk is the canonical image every other kind derives from"
+        [ -z "$(awk -F'\t' '$1 == "image" && $2 != "disk" && $3 == "builtin"' <<<"${rows}")" ] || fail "${images}: an image kind other than disk names the packer builtin; only the disk image is the assembly's own"
+        [ "$(awk -F'\t' '$1 == "update" && $2 == "full"' <<<"${rows}" | wc -l)" = 1 ] || fail "${images}: no single update full row; every board can be updated whole"
+        [ -z "$(awk -F'\t' '$1 == "update" && $2 !~ /^(full|root|kernel)$/' <<<"${rows}")" ] || fail "${images}: an update kind other than full, root or kernel (firmware waits until a device can install it)"
+        [ -z "$(awk -F'\t' '$1 == "update" && $3 != "builtin"' <<<"${rows}")" ] || fail "${images}: an update row whose packer is not builtin; the assembly signs and packs update packages itself"
+        for type in image update; do
+            [ -z "$(awk -F'\t' -v t="${type}" '$1 == t { print $2 }' <<<"${rows}" | sort | uniq -d)" ] || fail "${images}: an ${type} kind is declared twice"
+            [ -z "$(awk -F'\t' -v t="${type}" '$1 == t { print $5 }' <<<"${rows}" | sort | uniq -d)" ] || fail "${images}: an ${type} suffix is declared twice"
+        done
+        while IFS=$'\t' read -r type kind packer runtime _suffix; do
+            [ -n "${type}" ] || continue
+            if [ "${packer}" = builtin ]; then
+                [ "${runtime}" = - ] || fail "${images}: the builtin ${type} ${kind} names the runtime image '${runtime}'; a builtin row runs in the assembly and names -"
+                continue
+            fi
             case "${runtime}" in
             mica-build-env:*) awk -F'\t' -v n="${runtime#mica-build-env:}" '$1 == "image" && $2 == "mica-build-env" && $3 == n { f = 1 } END { exit !f }' locks/mica-build-env.lock ||
-                fail "${images}: ${kind} runs in ${runtime}, which locks/mica-build-env.lock names no image row for" ;;
-            *) fail "${images}: ${kind} runs in '${runtime}', not a mica-build-env:<name> image of locks/mica-build-env.lock" ;;
+                fail "${images}: ${type} ${kind} runs in ${runtime}, which locks/mica-build-env.lock names no image row for" ;;
+            *) fail "${images}: ${type} ${kind} runs in '${runtime}', not a mica-build-env:<name> image of locks/mica-build-env.lock" ;;
             esac
         done <<<"${rows}"
         pass
