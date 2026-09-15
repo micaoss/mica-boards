@@ -16,7 +16,7 @@
 # The boards, discovered: a directory with a board.env. Nothing here names one.
 BOARDS := $(patsubst boards/%/board.env,%,$(wildcard boards/*/board.env))
 
-.PHONY: help deps deps-check locks-test preflight pool package-gate offline publish publish-test trust-stage-test uboot-env-test board-contract-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test lint check
+.PHONY: help deps deps-check locks-test preflight pool package-gate offline publish publish-test ci-outputs-test trust-stage-test uboot-env-test board-contract-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test lint check
 
 help:
 	@echo "  deps                verify locks/ against the releases it pins; deps-check checks it offline"
@@ -29,6 +29,7 @@ help:
 	@echo "  publish             the release's board: its pool and components into the mica-boards package (pool.<board>.<arch>.<YYYYMMDD-HHMM>, <component>.<board>.<YYYYMMDD-HHMM>, reusing unchanged components), read back anonymously, then mica-boards.lock and SHA256SUMS on the release <board>/<YYYYMMDD-HHMM> (CI, from a release checkout)"
 	@echo "  trust-stage-test    common/trust/stage.sh validates and stages a public certificate bundle, and refuses anything else (docker)"
 	@echo "  uboot-env-test      the FIT loaders' environment entry decodes the assembly's layout and round-trips (docker)"
+	@echo "  ci-outputs-test     tools/ci-outputs.sh: one or several workflow artifacts unpack the same, a missing one is refused"
 	@echo "  publish-test        the publishers and the lock writer against a local registry container: component and pool tags, reuse, every refusal (docker)"
 	@echo "  board-contract-test every board declares BOARD_FEATURES and its images.tsv, carries its own kernel and U-Boot build and manifests/, and is listed in boards/boards.tsv with its outputs.tsv"
 	@echo "  kernel-config-test  every board's committed kernel config carries the shared floor (common/kernel/kernel-config-test.sh)"
@@ -103,6 +104,8 @@ publish-test:
 	bash tests/publish-test.sh
 trust-stage-test:
 	bash tests/trust-stage-test.sh
+ci-outputs-test:
+	bash tests/ci-outputs-test.sh
 uboot-env-test:
 	bash tests/uboot-env-test.sh
 
@@ -130,4 +133,4 @@ wireless-test:
 lint:
 	bash tests/shell-lint.sh
 
-check: lint locks-test board-contract-test uboot-env-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test
+check: lint locks-test ci-outputs-test board-contract-test uboot-env-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test

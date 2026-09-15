@@ -67,16 +67,14 @@ jobs:
           printf '%s\n' "${VERITY}" | tr -d '\r' > meta/verity/signer.cert.pem
           printf '%s\n' "${BOOT}" | tr -d '\r' > meta/boot/signer.cert.pem
           grep -v '^#' trust-certificates.sha256 | sha256sum --strict -c -
+      # merge-multiple puts every output tar flat in one directory, however many artifacts matched.
       - uses: actions/download-artifact@v8
         with:
-          pattern: '{pool,kernel,uboot}-*'
-          path: _out/artifacts
+          pattern: ${{ needs.scope.outputs.board }}-{pool,kernel,uboot}-*
+          path: ${{ runner.temp }}/outputs
+          merge-multiple: true
       - name: The board's pool and built components of this run
-        run: |
-          set -euo pipefail
-          mkdir -p _out/debs
-          for d in _out/artifacts/pool-*; do mv "${d}" "_out/debs/${d##*/pool-}"; done
-          for t in _out/artifacts/kernel-*/*.tar _out/artifacts/uboot-*/*.tar; do [ -e "${t}" ] || continue; tar -xf "${t}" -C _out; done
+        run: bash tools/ci-outputs.sh unpack "${RUNNER_TEMP}/outputs" ${{ needs.build.outputs.pool-names }} ${{ needs.build.outputs.built }}
       - name: Publish the board's pool and components, then the release lock
         run: make publish
         env:

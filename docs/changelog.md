@@ -2,6 +2,15 @@
 
 ## 2026-09-15 [progress]
 
+Workflow outputs travel as uniquely named tars (`tools/ci-outputs.sh`), uploaded
+as `<scope>-<name>` and downloaded with `merge-multiple`: a board release's single
+pool artifact failed `build / pools` because `download-artifact` extracts a single
+matching artifact into the path itself, and the components check silently took an
+undownloaded kernel for a reused one. The components check now expects exactly the
+tars the plan built, and `ci.yml` also runs the one-board path (`build-board`, x64).
+
+## 2026-09-15 [progress]
+
 Flashing formats (user decision): every board declares what it is flashed with in
 `boards/<board>/images.tsv` (`# mica-boards images v1`; rows `image <kind> <packer>
 <runtime image> <suffix>`), carried in its board component and covered by its

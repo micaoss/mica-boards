@@ -17,6 +17,11 @@ name: build
 #   pool        one native job per architecture: the boards' packages and their package gate
 #   pools       the static package gate across the pools
 #
+# Each job hands its outputs on as one tar (tools/ci-outputs.sh), uploaded as the
+# artifact <scope>-<name> (scope: the board, or `all`, so CI's two calls of this
+# workflow in one run do not collide) and downloaded with merge-multiple, which
+# lays one artifact out exactly like several.
+#
 # The trust inputs are the deployment's public certificates, the repository
 # variables MICA_VERITY_TRUST_CERT and MICA_BOOT_TRUST_CERT (PEM text; public, so
 # variables and not secrets), which must hash to what trust-certificates.sha256
@@ -45,6 +50,13 @@ on:
         description: the release tag <board>/<YYYYMMDD-HHMM> being built, whose reusable components are not built
         type: string
         default: ""
+    outputs:
+      built:
+        description: the output tars of the components built (kernel-<board>, uboot-<board>)
+        value: ${{ jobs.plan.outputs.built }}
+      pool-names:
+        description: the output tars of the pools (pool-<arch>)
+        value: ${{ jobs.plan.outputs.pool-names }}
 permissions:
   contents: read
 jobs:
@@ -55,6 +67,8 @@ jobs:
       kernels: ${{ steps.plan.outputs.kernels }}
       uboots: ${{ steps.plan.outputs.uboots }}
       pools: ${{ steps.plan.outputs.pools }}
+      built: ${{ steps.plan.outputs.built }}
+      pool-names: ${{ steps.plan.outputs.pool-names }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -96,11 +110,15 @@ jobs:
           pools="$(for b in ${boards}; do bash tools/boards.sh arch "${b}"; done | sort -u | while read -r a; do jq -nc --arg a "${a}" --arg r "$(runner "${a}")" '{arch: $a, runner: $r}'; done | jq -sc '{include: .}')"
           # A matrix with nothing to build keeps one empty entry, whose steps are all skipped.
           matrix() { printf '%s' "$1" | jq -sc 'if length == 0 then {include: [{board: ""}]} else {include: .} end'; }
+          # The output tars the later jobs must receive: every built component, every pool.
+          built="$(printf '%s' "${kernels}" | jq -r '"kernel-" + .board' | tr '\n' ' ')$(printf '%s' "${uboots}" | jq -r '"uboot-" + .board' | tr '\n' ' ')"
           {
               echo "boards=${boards% }"
               echo "kernels=$(matrix "${kernels}")"
               echo "uboots=$(matrix "${uboots}")"
               echo "pools=${pools}"
+              echo "built=${built% }"
+              echo "pool-names=$(jq -r '.include[] | "pool-" + .arch' <<<"${pools}" | tr '\n' ' ' | sed 's/ $//')"
           } >>"${GITHUB_OUTPUT}"
           echo "boards: ${boards}"; echo "kernel jobs: ${kernels//$'\n'/ }"; echo "uboot jobs: ${uboots//$'\n'/ }"
 
@@ -155,12 +173,12 @@ jobs:
           key: ${{ steps.cache.outputs.cache-primary-key }}
       - name: The kernel outputs
         if: matrix.board != ''
-        run: tar -cf "${RUNNER_TEMP}/kernel.tar" -C _out "${{ matrix.board }}/kernel"
+        run: bash tools/ci-outputs.sh pack kernel-${{ matrix.board }} ${{ matrix.board }}/kernel
       - uses: actions/upload-artifact@v7
         if: matrix.board != ''
         with:
-          name: kernel-${{ matrix.board }}
-          path: ${{ runner.temp }}/kernel.tar
+          name: ${{ inputs.board || 'all' }}-kernel-${{ matrix.board }}
+          path: _out/kernel-${{ matrix.board }}.tar
           retention-days: 3
 
   uboot:
@@ -220,14 +238,13 @@ jobs:
           BOARD: ${{ matrix.board }}
         run: |
           set -euo pipefail
-          cd _out
-          mapfile -t dirs < <(ls -d "${BOARD}"/uboot*)
-          tar -cf "${RUNNER_TEMP}/uboot.tar" "${dirs[@]}"
+          mapfile -t dirs < <(cd _out && ls -d "${BOARD}"/uboot*)
+          bash tools/ci-outputs.sh pack "uboot-${BOARD}" "${dirs[@]}"
       - uses: actions/upload-artifact@v7
         if: matrix.board != ''
         with:
-          name: uboot-${{ matrix.board }}
-          path: ${{ runner.temp }}/uboot.tar
+          name: ${{ inputs.board || 'all' }}-uboot-${{ matrix.board }}
+          path: _out/uboot-${{ matrix.board }}.tar
           retention-days: 3
 
   components:
@@ -245,22 +262,25 @@ jobs:
           mkdir -p meta/verity
           printf '%s\n' "${VERITY}" | tr -d '\r' > meta/verity/signer.cert.pem
           grep ' meta/verity/signer.cert.pem$' trust-certificates.sha256 | sha256sum --strict -c -
+      # merge-multiple puts every tar flat in one directory, whether one artifact matched or many.
       - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.built != ''
         with:
-          pattern: '{kernel,uboot}-*'
+          pattern: ${{ inputs.board || 'all' }}-{kernel,uboot}-*
           path: ${{ runner.temp }}/outputs
+          merge-multiple: true
       - name: Every built component, held to its board's outputs.tsv
         env:
           BOARDS: ${{ needs.plan.outputs.boards }}
+          BUILT: ${{ needs.plan.outputs.built }}
         run: |
           set -euo pipefail
-          mkdir -p _out
-          for t in "${RUNNER_TEMP}"/outputs/*/*.tar; do [ -e "${t}" ] || continue; tar -xf "${t}" -C _out; done
+          # shellcheck disable=SC2086
+          [ -z "${BUILT}" ] || bash tools/ci-outputs.sh unpack "${RUNNER_TEMP}/outputs" ${BUILT}
           for b in ${BOARDS}; do
               for c in $(bash tools/component.sh list "${b}"); do
                   case "${c}" in
-                  kernel) [ -d "_out/${b}/kernel" ] || { echo "${b} kernel: reused, not built"; continue; } ;;
-                  uboot) compgen -G "_out/${b}/uboot*" >/dev/null || { echo "${b} uboot: reused, not built"; continue; } ;;
+                  kernel | uboot) case " ${BUILT} " in *" ${c}-${b} "*) ;; *) echo "${b} ${c}: reused, not built"; continue ;; esac ;;
                   esac
                   bash tools/component.sh stage "${b}" "${c}" "${RUNNER_TEMP}/components/${b}/${c}"
                   echo "${b} ${c}: $(find "${RUNNER_TEMP}/components/${b}/${c}" -type f | wc -l) files, as outputs.tsv lists"
@@ -308,26 +328,28 @@ jobs:
         with:
           path: ${{ runner.temp }}/buildx-cache
           key: ${{ steps.cache.outputs.cache-primary-key }}
+      - name: The pool
+        run: bash tools/ci-outputs.sh pack pool-${{ matrix.arch }} debs/${{ matrix.arch }}
       - uses: actions/upload-artifact@v7
         with:
-          name: pool-${{ matrix.arch }}
-          path: _out/debs/${{ matrix.arch }}
+          name: ${{ inputs.board || 'all' }}-pool-${{ matrix.arch }}
+          path: _out/pool-${{ matrix.arch }}.tar
           retention-days: 3
 
   pools:
-    needs: pool
+    needs: [plan, pool]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
+      # merge-multiple: a board release's one pool and CI's two arrive the same way.
       - uses: actions/download-artifact@v8
         with:
-          pattern: pool-*
-          path: _out/artifacts
+          pattern: ${{ inputs.board || 'all' }}-pool-*
+          path: ${{ runner.temp }}/pools
+          merge-multiple: true
       - name: The pools of this run
-        run: |
-          set -euo pipefail
-          for d in _out/artifacts/pool-*; do mkdir -p _out/debs; mv "${d}" "_out/debs/${d##*/pool-}"; done
+        run: bash tools/ci-outputs.sh unpack "${RUNNER_TEMP}/pools" ${{ needs.plan.outputs.pool-names }}
       - name: The package gate across the pools
         run: make package-gate GATE_ARGS="${{ inputs.board != '' && format('--board {0} ', inputs.board) || '' }}--static"
