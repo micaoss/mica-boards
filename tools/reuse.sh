@@ -29,10 +29,12 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
 
 # The listing is release metadata from the GitHub API, whose anonymous rate limit
-# is shared by every job on a runner's address: GITHUB_TOKEN, when the workflow
-# hands it in, only raises that limit. The locks and artifacts are read anonymously.
+# is shared by every job on a runner's address: a token, when the workflow
+# hands it in (GITHUB_TOKEN, or GH_TOKEN as the publish step sets it), only raises
+# that limit. The locks and artifacts are read anonymously.
 auth=()
-case "${LIST_URL}" in https://api.github.com/*) [ -z "${GITHUB_TOKEN:-}" ] || auth=(-H "Authorization: Bearer ${GITHUB_TOKEN}") ;; esac
+token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+case "${LIST_URL}" in https://api.github.com/*) [ -z "${token}" ] || auth=(-H "Authorization: Bearer ${token}") ;; esac
 curl -fsSL "${auth[@]}" "${LIST_URL}" -o "${WORK}/releases.json" || die "listing the releases of ${SLUG} failed"
 latest="$(jq -r --arg b "${BOARD}/" --arg skip "${SKIP}" '[.[] | select(.draft == false and (.tag_name | startswith($b)) and .tag_name != $skip
     and ([.assets[].name] | index("mica-boards.lock")))] | map(.tag_name) | sort | last // empty' "${WORK}/releases.json")"
