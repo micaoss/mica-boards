@@ -164,6 +164,19 @@ SOURCE_COMMIT="$(git -C "${REPO_ROOT}" rev-parse HEAD)"
     echo "error: \`git rev-parse HEAD\` in ${REPO_ROOT} did not name a commit; the archive's Mica-Source-Commit would be empty" >&2
     exit 1
 }
+# A recorded identity (tools/deb/reuse.sh): rebuild at the current tree as the
+# archive a previous release published -- its Version, its Mica-Source-Commit
+# and the SOURCE_DATE_EPOCH its members carry -- to prove that archive is what
+# this tree's unchanged inputs produce. Only the reuse check sets it.
+if [ -n "${MICA_DEB_IDENTITY:-}" ]; then
+    read -r id_version id_commit id_epoch <<<"${MICA_DEB_IDENTITY}"
+    [ -n "${id_version}" ] && [[ "${id_commit}" =~ ^[0-9a-f]{40}$ ]] && [[ "${id_epoch}" =~ ^[0-9]+$ ]] || {
+        echo "error: MICA_DEB_IDENTITY='${MICA_DEB_IDENTITY}' is not '<version> <40-hex commit> <epoch seconds>'" >&2
+        exit 1
+    }
+    VERSION="${id_version}" SOURCE_COMMIT="${id_commit}" SOURCE_DATE_EPOCH="${id_epoch}"
+    echo "note: building as the recorded identity ${VERSION} ${SOURCE_COMMIT:0:12} @${SOURCE_DATE_EPOCH}"
+fi
 if [ -n "${MICA_SOURCE_REPO:-}" ]; then
     SOURCE_REPO="${MICA_SOURCE_REPO}"
 else

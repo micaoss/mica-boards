@@ -2,6 +2,24 @@
 
 ## 2026-09-15 [progress]
 
+Package reuse by inputs (user decision): a board release keeps an unchanged
+package at its published version and bytes instead of re-versioning it. Each pool
+layer carries its producer's inputs hash as `mica.inputs`
+(`tools/deb/package-inputs.sh`). In a board release's pool job,
+`tools/deb/reuse.sh` reads the board's latest release, downloads the archives of
+every producer whose inputs are unchanged at their layer digests, holds them to
+that lock's package rows, rebuilds the producer as their identity
+(`MICA_DEB_IDENTITY`: Version, Mica-Source-Commit, SOURCE_DATE_EPOCH) on an
+empty-cache builder and takes them only when byte-identical, and writes
+`reused.tsv`; a missing, mismatching or unreproduced archive stops the release.
+The package gate holds reused archives to those rows like imports, the publisher
+accepts them from their own commit and, when every archive is reused and the
+layers are the previous pool's, puts that pool manifest under the new tag. No lock
+row or specification change. `tests/package-reuse-test.sh` (`make
+package-reuse-test`): reused, rebuilt, pool digest kept, and three refusals.
+
+## 2026-09-15 [progress]
+
 `images.tsv` declares update packages too: every board has `image disk builtin -
 img` and `update full|root|kernel builtin - micaupd|root.micaupd|kernel.micaupd`.
 `board-contract-test`: an image disk builtin row and an update full row, builtin

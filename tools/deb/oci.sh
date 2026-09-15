@@ -23,7 +23,7 @@
 #                                            uploads the layers and the manifest unless the tag holds it; prints
 #                                            pushed|present <digest>, and refuses a tag holding another digest
 #   oci_tag_manifest <repo> <tag> <manifest.json>  the same for a manifest whose blobs the registry holds
-#     layers.tsv: <file> TAB <media type> TAB <title>
+#     layers.tsv: <file> TAB <media type> TAB <title> [TAB <inputs sha256>, the layer's mica.inputs]
 #
 # Authentication is the token challenge of the Distribution API: a 401 with
 # WWW-Authenticate names the realm, the scope is asked for with the basic
@@ -158,18 +158,18 @@ oci_blob_put() {
 # re-pointed.
 oci_publish() {
     local repo="$1" tag="$2" type="$3" annotations="$4" layers="$5"
-    local work manifest file media title digest size status have
+    local work manifest file media title inputs digest size status have
     work="$(mktemp -d)"
     printf '{}' >"${work}/config"
     oci_blob_put "${repo}" "${work}/config" "${OCI_EMPTY_CONFIG_DIGEST}" || { rm -rf "${work}"; return 1; }
     : >"${work}/layers.json"
-    while IFS=$'\t' read -r file media title; do
+    while IFS=$'\t' read -r file media title inputs; do
         [ -n "${file}" ] || continue
         digest="sha256:$(sha256sum "${file}" | cut -d' ' -f1)"
         size="$(stat -c %s "${file}")"
         oci_blob_put "${repo}" "${file}" "${digest}" || { rm -rf "${work}"; return 1; }
-        jq -n --arg m "${media}" --arg d "${digest}" --argjson s "${size}" --arg t "${title}" \
-            '{mediaType: $m, digest: $d, size: $s, annotations: {"org.opencontainers.image.title": $t}}' >>"${work}/layers.json"
+        jq -n --arg m "${media}" --arg d "${digest}" --argjson s "${size}" --arg t "${title}" --arg i "${inputs}" \
+            '{mediaType: $m, digest: $d, size: $s, annotations: ({"org.opencontainers.image.title": $t} + (if $i == "" then {} else {"mica.inputs": $i} end))}' >>"${work}/layers.json"
     done <"${layers}"
     jq -n --arg type "${type}" --arg cfg "${OCI_EMPTY_CONFIG_DIGEST}" --slurpfile layers "${work}/layers.json" --slurpfile ann "${annotations}" \
         '{schemaVersion: 2, mediaType: "application/vnd.oci.image.manifest.v1+json", artifactType: $type,

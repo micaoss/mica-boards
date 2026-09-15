@@ -39,7 +39,12 @@ board's pool and package rows and a `board <board> <component> <arch>
 <reference>` row per component) and `SHA256SUMS` listing only the lock. A
 component whose inputs hash (`tools/inputs.sh`, the `mica.inputs` annotation)
 equals the same component of the board's latest release is not built again: the
-new tag names the published digest (`tools/reuse.sh`). Kernels are built natively
+new tag names the published digest (`tools/reuse.sh`). A package is reused the
+same way: when its producer's inputs hash (`tools/deb/package-inputs.sh`, the
+`mica.inputs` annotation of its pool layer) equals the board's latest release's,
+the release carries that published archive, at its version, once a rebuild of the
+producer as that archive's identity is the same bytes, and a pool whose every
+archive is reused keeps its digest (`tools/deb/reuse.sh`). Kernels are built natively
 on their board's architecture; U-Boot is cross-compiled on x86-64, whose FIT host
 tools the assembly runs there. `boards/boards.tsv` lists the supported boards,
 one row each, and `boards/<board>/outputs.tsv` what a release of the board

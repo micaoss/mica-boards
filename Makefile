@@ -16,7 +16,7 @@
 # The boards, discovered: a directory with a board.env. Nothing here names one.
 BOARDS := $(patsubst boards/%/board.env,%,$(wildcard boards/*/board.env))
 
-.PHONY: help deps deps-check locks-test preflight pool package-gate offline publish publish-test ci-outputs-test trust-stage-test uboot-env-test board-contract-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test lint check
+.PHONY: help deps deps-check locks-test preflight pool package-gate offline publish publish-test package-reuse-test ci-outputs-test trust-stage-test uboot-env-test board-contract-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test lint check
 
 help:
 	@echo "  deps                verify locks/ against the releases it pins; deps-check checks it offline"
@@ -31,6 +31,7 @@ help:
 	@echo "  uboot-env-test      the FIT loaders' environment entry decodes the assembly's layout and round-trips (docker)"
 	@echo "  ci-outputs-test     tools/ci-outputs.sh: one or several workflow artifacts unpack the same, a missing one is refused"
 	@echo "  publish-test        the publishers and the lock writer against a local registry container: component and pool tags, reuse, every refusal (docker)"
+	@echo "  package-reuse-test  package reuse by inputs on the x64 producer against a local registry: reused, rebuilt, pool re-tagged, refusals (docker)"
 	@echo "  board-contract-test every board declares BOARD_FEATURES and its images.tsv, carries its own kernel and U-Boot build and manifests/, and is listed in boards/boards.tsv with its outputs.tsv"
 	@echo "  kernel-config-test  every board's committed kernel config carries the shared floor (common/kernel/kernel-config-test.sh)"
 	@echo "  locks-test          the lock checker over the release-lock vectors, the committed locks and every Dockerfile's syntax pin"
@@ -79,7 +80,7 @@ pool: preflight
 	        bash tools/deb/build.sh --producer "$$producer" --arch "$$arch"; \
 	    done; \
 	done
-	@for a in $(if $(POOL_ARCH),$(POOL_ARCH),$(if $(POOL_BOARD),$$(bash tools/boards.sh arch $(POOL_BOARD)),amd64 arm64)); do bash tools/deb/repo.sh --arch "$$a"; done
+	@for a in $(if $(POOL_ARCH),$(POOL_ARCH),$(if $(POOL_BOARD),$$(bash tools/boards.sh arch $(POOL_BOARD)),amd64 arm64)); do rm -f "_out/debs/$$a/reused.tsv" "_out/debs/$$a/previous-pool.json"; bash tools/deb/repo.sh --arch "$$a"; done
 
 # GATE_ARGS=--arch <arch> gates one pool (with its native rebuild);
 # GATE_ARGS=--static gates every pool without a rebuild.
@@ -102,6 +103,8 @@ publish:
 
 publish-test:
 	bash tests/publish-test.sh
+package-reuse-test:
+	bash tests/package-reuse-test.sh
 trust-stage-test:
 	bash tests/trust-stage-test.sh
 ci-outputs-test:

@@ -144,7 +144,12 @@ for row in "${ROWS[@]}"; do
 done
 
 # a, b, d, e, f, g, h, i: one container reading both pools, with the lock rows staged.
+# Archives a release reuses from its board's previous release (tools/deb/reuse.sh,
+# which proved each one) are held to their rows the way imports are.
 : >"${TMPL}/lock.tsv"
+for a in "${ARCHES[@]}"; do
+    [ ! -f "${DIST}/${a}/reused.tsv" ] || cut -f1-6 "${DIST}/${a}/reused.tsv" >>"${TMPL}/lock.tsv"
+done
 STATIC_LOG="${WORK}/static.log"
 static_status=0
 docker run --rm -i \
@@ -747,7 +752,7 @@ for i in "${!ARCHES[@]}"; do
 
     # The rows that build for this pool, in discovery order.
     candidates=()
-    locked_names=" "
+    locked_names=" $(awk -F'\t' -v a="${arch}" '$3 == a || $3 == "all" { printf "%s ", $1 }' "${TMPL}/lock.tsv")"
     for row in "${ROWS[@]}"; do
         read -r producer dir arches packages _enablement <<<"${row}"
         case ",${arches}," in

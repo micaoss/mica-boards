@@ -13,7 +13,9 @@ as mica-build-env c076e24 `deb/` and are this repository's from then on.
 | `preflight.sh` | host | every missing producer input at once, before `make pool` |
 | `repo.sh` | host, in the mica-build-env `base` image | `Packages`, `SHA256SUMS`, `manifest.txt` for a pool |
 | `package-gate.sh` | host, in the mica-build-env `base` image | the pool gates of `RULES.md` section 6, including a byte-identical rebuild |
-| `publish.sh` | CI release job | the release's board's `<registry>/<repository>:pool.<board>.<arch>.<YYYYMMDD-HHMM>` |
+| `package-inputs.sh` | host | a producer's inputs hash at one architecture, the `mica.inputs` of its pool layers |
+| `reuse.sh` | CI board release, after `make pool` | the archives of producers whose inputs equal the board's latest release's, taken from that release once a rebuild as their identity is the same bytes; `reused.tsv`, which the gate holds like lock rows |
+| `publish.sh` | CI release job | the release's board's `<registry>/<repository>:pool.<board>.<arch>.<YYYYMMDD-HHMM>`; the previous pool's manifest when every archive is reused |
 | `registry.sh`, `registry.env`, `oci.sh`, `control-fields.py` | sourced / host | the registry, the release a checkout is, the OCI client, control fields without dpkg |
 
 Images come only from `tools/from.sh`, out of `locks/mica-build-env.lock`: the
