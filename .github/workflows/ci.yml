@@ -1,0 +1,27 @@
+name: ci
+# The quality gates on every push and pull request, and on demand; every board is
+# built; nothing is published.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: The build-env release lock, verified against its release
+        run: make deps
+      - name: The lock and the base image pins, offline
+        run: make deps-check
+      - name: Lint, the board contract, the kernel-config floor and the boards' tests
+        run: make check
+
+  build:
+    needs: check
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ github.sha }}
