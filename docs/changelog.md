@@ -2,6 +2,18 @@
 
 ## 2026-09-15 [progress]
 
+virt-arm64 kernel trimmed to mica-build's QEMU virt guest (its evaluation of
+the speed report, 2026-09-15): the board fragment switches off at their menus the
+physical platforms, SoC buses and peripherals, USB, radios, wired Ethernet
+hardware, display, sound, media, extra input, SCSI/ATA/NVMe/MMC, unattached virtio
+devices, filesystems nothing mounts and crypto accelerators. The resolved config
+goes from 3272 built-in and 1134 module symbols to 1319 and 75; the kernel ships
+71 modules instead of 1273. `kernel/config/virt-arm64.required` lists the guest's
+symbols (`builtin` =y, `runtime` =y or =m), held by `tools/kernel-config-test.sh`;
+`common/kernel/mica-required.fragment` is unchanged.
+
+## 2026-09-15 [progress]
+
 Kernel and U-Boot builds (user decisions on the kernel speed report). FIT boards
 compile their kernel once: dev is built whole, prod only moves the forced command
 line (`common/kernel/set-profile.sh`) and relinks the Image in the same tree, with

@@ -1,0 +1,91 @@
+# The symbols mica-build's QEMU virt guest needs (mica-build evaluation of the
+# virt-arm64 trim, 2026-09-15), held by tools/kernel-config-test.sh against
+# config/virt-arm64.config. `builtin` must be =y: it is needed before the
+# support image is mounted (mica-build:build/src/kernel-package.ts refuses
+# otherwise). `runtime` may be =y or =m. A symbol leaves this list only with
+# the guest it serves; a trim that drops one fails the test.
+#
+# <builtin|runtime> <symbol>
+builtin ARM_GIC
+builtin ARM_GIC_V3
+builtin ARM_ARCH_TIMER
+builtin ARM_PSCI_FW
+builtin PCI
+builtin PCI_HOST_GENERIC
+builtin SERIAL_AMBA_PL011
+builtin SERIAL_AMBA_PL011_CONSOLE
+builtin RTC_DRV_PL031
+builtin EFI
+builtin EFI_STUB
+builtin EFIVAR_FS
+builtin VIRTIO_PCI
+builtin VIRTIO_BLK
+builtin BLK_DEV_LOOP
+builtin BLK_DEV_DM
+builtin DM_INIT
+builtin DM_VERITY
+builtin DM_VERITY_VERIFY_ROOTHASH_SIG
+builtin SYSTEM_TRUSTED_KEYRING
+builtin ASYMMETRIC_KEY_TYPE
+builtin ASYMMETRIC_PUBLIC_KEY_SUBTYPE
+builtin X509_CERTIFICATE_PARSER
+builtin PKCS7_MESSAGE_PARSER
+builtin CRYPTO_SHA256
+builtin SQUASHFS
+builtin SQUASHFS_ZSTD
+builtin SQUASHFS_XATTR
+builtin EXT4_FS
+builtin RD_ZSTD
+builtin DEVTMPFS
+builtin WATCHDOG_NOWAYOUT
+builtin I6300ESB_WDT
+runtime FAT_FS
+runtime VFAT_FS
+runtime NLS_CODEPAGE_437
+runtime NLS_ISO8859_1
+runtime QUOTA
+runtime QFMT_V2
+runtime TMPFS
+runtime OVERLAY_FS
+runtime AUTOFS_FS
+runtime CGROUPS
+runtime MEMCG
+runtime CGROUP_PIDS
+runtime CGROUP_SCHED
+runtime BLK_CGROUP
+runtime NAMESPACES
+runtime USER_NS
+runtime NET_NS
+runtime PID_NS
+runtime IPC_NS
+runtime UTS_NS
+runtime SECCOMP
+runtime FHANDLE
+runtime INOTIFY_USER
+runtime SIGNALFD
+runtime TIMERFD
+runtime EPOLL
+runtime UNIX
+runtime PACKET
+runtime IPV6
+runtime NET_9P
+runtime NET_9P_VIRTIO
+runtime 9P_FS
+runtime VIRTIO_NET
+runtime VETH
+runtime BRIDGE
+runtime NF_TABLES
+runtime NF_TABLES_INET
+runtime NF_TABLES_IPV4
+runtime NF_TABLES_IPV6
+runtime NF_NAT
+runtime NFT_NAT
+runtime NFT_MASQ
+runtime NF_NAT_MASQUERADE
+runtime NF_CONNTRACK
+runtime NFT_CT
+runtime NF_CONNTRACK_MARK
+runtime NFT_FIB
+runtime NFT_FIB_IPV4
+runtime NFT_FIB_IPV6
+runtime NFT_FIB_INET

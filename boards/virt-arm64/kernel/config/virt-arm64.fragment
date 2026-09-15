@@ -186,15 +186,227 @@ CONFIG_CRYPTO_LIB_SHA256=y
 CONFIG_CRYPTO_AES_ARM64_CE_BLK=y
 
 # --- what virt-arm64 deliberately does NOT have ------------------------------
-# No wireless: board.env declares no radio in BOARD_FEATURES and the
-# image ships no bluez, no wpasupplicant and no hostapd, so a kernel with a
-# WiFi stack would carry drivers for a userland that cannot drive them.
-# No sound, no DRM/GPU, no media, no industrial I/O, and no vendor SoC support:
-# nothing in the image opens any of them and the machine has none. Each is left
-# at whatever arm64 `defconfig` says rather than being switched off line by
-# line -- the recorded config/virt-arm64.config is where the resulting answer
-# is reviewed, and a hundred `is not set` lines here would be a second copy of
-# it.
+# The machine is QEMU `virt` as mica-build runs it (mica-build's evaluation,
+# 2026-09-15): -cpu max, virtio-blk-pci, virtio-net-pci, an i6300esb watchdog,
+# virtio-9p-pci for the lifecycle import, a PL011 console, AAVMF. Everything
+# below is hardware that machine never presents, switched off at its menu so
+# arm64 `defconfig`'s board support does not ride along: no module of it is
+# built, packed or shipped. What the guest needs is asserted =y above and
+# listed in config/virt-arm64.required (tools/kernel-config-test.sh).
+
+# physical platforms and their SoC support
+# CONFIG_ARCH_ACTIONS is not set
+# CONFIG_ARCH_AIROHA is not set
+# CONFIG_ARCH_SUNXI is not set
+# CONFIG_ARCH_ALPINE is not set
+# CONFIG_ARCH_APPLE is not set
+# CONFIG_ARCH_BCM is not set
+# CONFIG_ARCH_BCM2835 is not set
+# CONFIG_ARCH_BCM_IPROC is not set
+# CONFIG_ARCH_BCMBCA is not set
+# CONFIG_ARCH_BRCMSTB is not set
+# CONFIG_ARCH_BERLIN is not set
+# CONFIG_ARCH_EXYNOS is not set
+# CONFIG_ARCH_SPARX5 is not set
+# CONFIG_ARCH_K3 is not set
+# CONFIG_ARCH_LG1K is not set
+# CONFIG_ARCH_HISI is not set
+# CONFIG_ARCH_KEEMBAY is not set
+# CONFIG_ARCH_MEDIATEK is not set
+# CONFIG_ARCH_MESON is not set
+# CONFIG_ARCH_MVEBU is not set
+# CONFIG_ARCH_NXP is not set
+# CONFIG_ARCH_LAYERSCAPE is not set
+# CONFIG_ARCH_MXC is not set
+# CONFIG_ARCH_S32 is not set
+# CONFIG_ARCH_MA35 is not set
+# CONFIG_ARCH_NPCM is not set
+# CONFIG_ARCH_QCOM is not set
+# CONFIG_ARCH_REALTEK is not set
+# CONFIG_ARCH_RENESAS is not set
+# CONFIG_ARCH_ROCKCHIP is not set
+# CONFIG_ARCH_SEATTLE is not set
+# CONFIG_ARCH_INTEL_SOCFPGA is not set
+# CONFIG_ARCH_STM32 is not set
+# CONFIG_ARCH_SYNQUACER is not set
+# CONFIG_ARCH_TEGRA is not set
+# CONFIG_ARCH_TESLA_FSD is not set
+# CONFIG_ARCH_SPRD is not set
+# CONFIG_ARCH_THUNDER is not set
+# CONFIG_ARCH_THUNDER2 is not set
+# CONFIG_ARCH_UNIPHIER is not set
+# CONFIG_ARCH_VEXPRESS is not set
+# CONFIG_ARCH_VISCONTI is not set
+# CONFIG_ARCH_XGENE is not set
+# CONFIG_ARCH_ZYNQMP is not set
+
+# buses, controllers and board peripherals
+# CONFIG_I2C is not set
+# CONFIG_SPI is not set
+# CONFIG_SPMI is not set
+# CONFIG_SLIMBUS is not set
+# CONFIG_SOUNDWIRE is not set
+# CONFIG_MHI_BUS is not set
+# CONFIG_MTD is not set
+# CONFIG_PINCTRL is not set
+# CONFIG_REGULATOR is not set
+# CONFIG_COMMON_CLK_SCMI is not set
+# CONFIG_ARM_SCMI_PROTOCOL is not set
+# CONFIG_ARM_SCPI_PROTOCOL is not set
+# CONFIG_MAILBOX is not set
+# CONFIG_REMOTEPROC is not set
+# CONFIG_RPMSG is not set
+# CONFIG_IOMMU_SUPPORT is not set
+# CONFIG_THERMAL is not set
+# CONFIG_HWMON is not set
+# CONFIG_POWER_SUPPLY is not set
+# CONFIG_PM_DEVFREQ is not set
+# CONFIG_INTERCONNECT is not set
+# CONFIG_EXTCON is not set
+# CONFIG_MEMORY is not set
+# CONFIG_IIO is not set
+# CONFIG_PWM is not set
+# CONFIG_TEE is not set
+# CONFIG_FPGA is not set
+# CONFIG_NVMEM is not set
+# CONFIG_STAGING is not set
+# CONFIG_CHROME_PLATFORMS is not set
+# CONFIG_SURFACE_PLATFORMS is not set
+# CONFIG_CPU_FREQ is not set
+# CONFIG_DMADEVICES is not set
+# CONFIG_NEW_LEDS is not set
+# CONFIG_W1 is not set
+# CONFIG_GNSS is not set
+
+# USB, radios and wired Ethernet hardware
+# CONFIG_USB_SUPPORT is not set
+# CONFIG_WLAN is not set
+# CONFIG_WIRELESS is not set
+# CONFIG_CFG80211 is not set
+# CONFIG_BT is not set
+# CONFIG_NFC is not set
+# CONFIG_RFKILL is not set
+# CONFIG_CAN is not set
+# CONFIG_NET_DSA is not set
+# CONFIG_ETHERNET is not set
+# CONFIG_PHYLIB is not set
+
+# display, sound, media and input beyond the console
+# CONFIG_DRM is not set
+# CONFIG_FB is not set
+# CONFIG_SOUND is not set
+# CONFIG_MEDIA_SUPPORT is not set
+# CONFIG_HID is not set
+# CONFIG_INPUT_KEYBOARD is not set
+# CONFIG_INPUT_MOUSE is not set
+# CONFIG_INPUT_TOUCHSCREEN is not set
+# CONFIG_INPUT_MISC is not set
+# CONFIG_INPUT_JOYSTICK is not set
+
+# storage the machine does not have
+# CONFIG_SCSI is not set
+# CONFIG_ATA is not set
+# CONFIG_BLK_DEV_NVME is not set
+# CONFIG_NVME_CORE is not set
+# CONFIG_MMC is not set
+
+# virtio devices the machine does not attach
+# CONFIG_VIRTIO_BALLOON is not set
+# CONFIG_VIRTIO_INPUT is not set
+# CONFIG_HW_RANDOM_VIRTIO is not set
+# CONFIG_VIRTIO_CONSOLE is not set
+# CONFIG_VSOCKETS is not set
+
+# filesystems nothing mounts
+# CONFIG_BTRFS_FS is not set
+# CONFIG_XFS_FS is not set
+# CONFIG_F2FS_FS is not set
+# CONFIG_NFS_FS is not set
+# CONFIG_NFSD is not set
+# CONFIG_CIFS is not set
+# CONFIG_FUSE_FS is not set
+
+# platform debug, firmware and management interfaces of physical machines
+# CONFIG_CORESIGHT is not set
+# CONFIG_STM is not set
+# CONFIG_ARM_SPE_PMU is not set
+# CONFIG_ARM_CCI_PMU is not set
+# CONFIG_ARM_CCN is not set
+# CONFIG_ARM_CMN is not set
+# CONFIG_ARM_DSU_PMU is not set
+# CONFIG_ARM_DMC620_PMU is not set
+# CONFIG_ARM_SMMU_V3_PMU is not set
+# CONFIG_ARM_CORESIGHT_PMU_ARCH_SYSTEM_PMU is not set
+# CONFIG_NVIDIA_CORESIGHT_PMU_ARCH_SYSTEM_PMU is not set
+# CONFIG_IPMI_HANDLER is not set
+# CONFIG_TCG_TPM is not set
+# CONFIG_GOOGLE_FIRMWARE is not set
+# CONFIG_XEN is not set
+# CONFIG_PCI_ENDPOINT is not set
+# CONFIG_PCIE_DW is not set
+# CONFIG_RESET_CONTROLLER is not set
+# CONFIG_GENERIC_PHY is not set
+# CONFIG_MULTIPLEXER is not set
+# CONFIG_COUNTER is not set
+# CONFIG_RC_CORE is not set
+# CONFIG_BACKLIGHT_CLASS_DEVICE is not set
+# CONFIG_WWAN is not set
+# CONFIG_QRTR is not set
+# CONFIG_UACCE is not set
+# CONFIG_MDIO_DEVICE is not set
+# CONFIG_GPIO_ALTERA is not set
+
+# the PHY, MDIO and platform leaves arm64 `defconfig` names one by one
+# CONFIG_NET_SELFTESTS is not set
+# CONFIG_PCS_XPCS is not set
+# CONFIG_PHYLINK is not set
+# CONFIG_FIXED_PHY is not set
+# CONFIG_AQUANTIA_PHY is not set
+# CONFIG_AX88796B_PHY is not set
+# CONFIG_BROADCOM_PHY is not set
+# CONFIG_BCM54140_PHY is not set
+# CONFIG_BCM7XXX_PHY is not set
+# CONFIG_MARVELL_PHY is not set
+# CONFIG_MARVELL_10G_PHY is not set
+# CONFIG_MARVELL_88Q2XXX_PHY is not set
+# CONFIG_MICREL_PHY is not set
+# CONFIG_MICROCHIP_PHY is not set
+# CONFIG_MICROSEMI_PHY is not set
+# CONFIG_REALTEK_PHY is not set
+# CONFIG_ROCKCHIP_PHY is not set
+# CONFIG_SMSC_PHY is not set
+# CONFIG_DP83867_PHY is not set
+# CONFIG_DP83869_PHY is not set
+# CONFIG_DP83TD510_PHY is not set
+# CONFIG_VITESSE_PHY is not set
+# CONFIG_MDIO_BITBANG is not set
+# CONFIG_MDIO_BCM_UNIMAC is not set
+# CONFIG_MDIO_CAVIUM is not set
+# CONFIG_MDIO_GPIO is not set
+# CONFIG_MDIO_THUNDER is not set
+# CONFIG_MDIO_BUS_MUX_MULTIPLEXER is not set
+# CONFIG_MDIO_BUS_MUX_MMIOREG is not set
+# CONFIG_PCI_MESON is not set
+# CONFIG_PCI_ENDPOINT_TEST is not set
+# CONFIG_POWER_SEQUENCING is not set
+# CONFIG_RTC_DRV_MT6397 is not set
+# CONFIG_RPMSG_CHAR is not set
+# CONFIG_RPMSG_CTRL is not set
+# CONFIG_PHY_CAN_TRANSCEIVER is not set
+# CONFIG_PHY_CADENCE_TORRENT is not set
+# CONFIG_PHY_CADENCE_DPHY_RX is not set
+# CONFIG_PHY_CADENCE_SALVO is not set
+# CONFIG_NVMEM_LAYOUT_SL28_VPD is not set
+# CONFIG_NVMEM_RMEM is not set
+# CONFIG_NVMEM_REBOOT_MODE is not set
+# CONFIG_MUX_GPIO is not set
+# CONFIG_MUX_MMIO is not set
+# CONFIG_GPIO_AGGREGATOR is not set
+# CONFIG_PSTORE_RAM is not set
+# CONFIG_CRYPTO_TEST is not set
+
+# crypto accelerators
+# CONFIG_CRYPTO_HW is not set
 
 # The acceptance VM exposes the same PCI watchdog as x64.
 CONFIG_WATCHDOG_NOWAYOUT=y
