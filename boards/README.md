@@ -62,9 +62,13 @@ kernel command line, written for both profiles (mica docs decision
   (`CONFIG_CMDLINE_FORCE=y`), so the token is built into the kernel: `make
   kernel` builds one kernel per profile, each with `CONFIG_CMDLINE` =
   `BOARD_CMDLINE_ARGS` + ` mica.profile=<profile>` (exactly one token;
-  `kernel/configure.sh` adds it and refuses a board line that already names
-  `mica.profile` or `mica.recovery`), into `_out/<board>/kernel/dev/` and
-  `_out/<board>/kernel/prod/`. The board's kernel component carries both as
+  `common/kernel/set-profile.sh` sets it and refuses a board line that already
+  names `mica.profile` or `mica.recovery`), into `_out/<board>/kernel/dev/` and
+  `_out/<board>/kernel/prod/`, from one compile: dev is built whole and prod only
+  relinks the Image in the same tree, with the modules, device tree and
+  regulatory certificates of that build (none reads the command line).
+  `make kernel-profile-test` builds prod alone, clean, and requires every file
+  to be byte-identical to the relinked one. The board's kernel component carries both as
   `kernel/dev/` and `kernel/prod/`, each a complete kernel
   directory (Image, device tree, config, System.map, kernel.release,
   modules.tar, regdb-certs.pem); the assembly takes `kernel/<profile>/` for a
@@ -128,6 +132,8 @@ environment where the build sets it.
 | `modules-verify.sh` (s905x5m) | after depmod | `<module-dir>` | the indexed set carries them once |
 
 The artefacts are reproducible (`KBUILD_BUILD_*` and `SOURCE_DATE_EPOCH` are
-pinned): the proof of a change to a board's build is its kernel and U-Boot
+pinned, and the kernel and U-Boot builders install their toolchains from the
+Ubuntu archive snapshot the `ubuntu-<suite>` rows of `locks/upstream.lock` pin,
+`common/scripts/apt-install.sh`): the proof of a change to a board's build is its kernel and U-Boot
 byte-identical to the build before it, where the change was not meant to move
 them.

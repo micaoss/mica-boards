@@ -30,26 +30,32 @@ TRUST_STAGE := ../../common/trust/stage.sh
 # BUILDX_CACHE=<absolute directory>: common/scripts/buildx.sh caches the
 # builds' third-party prefix stage there (CI); unset, it is a plain buildx build.
 
-.PHONY: kernel uboot firmware clean
+.PHONY: kernel kernel-profile-test uboot firmware clean
 # One kernel per image profile, each forcing its own mica.profile token
-# (kernel/configure.sh): $(BSP_OUT)/kernel/dev/ and $(BSP_OUT)/kernel/prod/.
-KERNEL_PROFILES := dev prod
-kernel:
-	TRUST_DIR="$$(bash $(TRUST_STAGE) "$(VERITY_TRUST_CERT)" "$(BSP_OUT)/verity-trust")" && \
+# (common/kernel/set-profile.sh), from one compile: dev is built whole and prod
+# relinked in the same tree -> $(BSP_OUT)/kernel/dev/ and $(BSP_OUT)/kernel/prod/.
+# kernel-profile-test builds prod alone, clean, and requires every file of it to
+# be byte-identical to the relinked prod of `make kernel`.
+KERNEL_BUILDX = TRUST_DIR="$$(bash $(TRUST_STAGE) "$(VERITY_TRUST_CERT)" "$(BSP_OUT)/verity-trust")" && \
 	IMG="$$(bash $(FROM_SH) $(UBUNTU_ARG))" && \
 	KERNEL_REPO="$$($(PIN) git $(BOARD)-kernel url)" && KERNEL_COMMIT="$$($(PIN) git $(BOARD)-kernel commit)" && \
-	for profile in $(KERNEL_PROFILES); do \
-	  bash ../../common/scripts/buildx.sh $(BOARD)-kernel source --label ai-agent=true -t ai-agent/mica-$(BOARD)-kernel \
+	bash ../../common/scripts/buildx.sh $(BOARD)-kernel source --label ai-agent=true -t ai-agent/mica-$(BOARD)-kernel \
 	  --build-context common=../../common \
 	  --build-context mica-common=../../common/kernel --build-context "mica-trust=$$TRUST_DIR" \
+	  --build-arg "MICA_APT_SNAPSHOT=$$(bash ../../tools/apt-snapshot.sh)" \
 	  --build-arg KERNEL_REPO=$$KERNEL_REPO --build-arg KERNEL_COMMIT=$$KERNEL_COMMIT \
 	  --build-arg KERNEL_EXPECT=$(KERNEL_EXPECT) --build-arg KERNEL_CONFIG=$(KERNEL_CONFIG) \
 	  --build-arg "KERNEL_FRAGMENTS=$(KERNEL_FRAGMENTS)" \
 	  --build-arg KERNEL_DTB=$(KERNEL_DTB) --build-arg KERNEL_DTB_ARTIFACT=$(KERNEL_DTB_ARTIFACT) \
-	  --build-arg KERNEL_PROFILE=$$profile \
-	  -f kernel/Dockerfile --target artifact $$IMG \
-	  -o $(BSP_OUT)/kernel/$$profile . || exit 1; \
-	done
+	  -f kernel/Dockerfile --target artifact $$IMG
+kernel:
+	$(KERNEL_BUILDX) -o $(BSP_OUT)/kernel .
+
+kernel-profile-test:
+	@test -s $(BSP_OUT)/kernel/prod/Image || { echo "error: $(BSP_OUT)/kernel/prod/ holds no Image; run make kernel first" >&2; exit 1; }
+	rm -rf $(BSP_OUT)/kernel-profile-test
+	$(KERNEL_BUILDX) --build-arg KERNEL_PROFILES=prod -o $(BSP_OUT)/kernel-profile-test .
+	bash ../../common/kernel/profile-test.sh $(BSP_OUT)/kernel/prod $(BSP_OUT)/kernel-profile-test/prod
 
 # Only public FIT trust enters the firmware builder. The vendor toolchains are
 # source rows (name:arch), handed in as <ARG>_URL_<arch> and <ARG>_SHA256_<arch>;
@@ -68,6 +74,7 @@ uboot:
 	done)" && \
 	bash ../../common/scripts/buildx.sh $(BOARD)-uboot source --label ai-agent=true -t ai-agent/mica-$(BOARD)-uboot \
 	  --build-context mica-common=../../common/uboot --build-context "mica-boot-trust=$$TRUST_DIR" \
+	  --build-context bsp-scripts=../../common/scripts --build-arg "MICA_APT_SNAPSHOT=$$(bash ../../tools/apt-snapshot.sh)" \
 	  --build-arg UBOOT_REPO=$$UBOOT_REPO --build-arg UBOOT_COMMIT=$$UBOOT_COMMIT $$TOOLCHAINS \
 	  -f loader/Dockerfile $$IMG \
 	  -o $(BSP_OUT)/uboot loader

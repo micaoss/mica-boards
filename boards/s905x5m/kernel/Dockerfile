@@ -22,6 +22,7 @@ COPY --from=common scripts/ /bsp/scripts/
 # package list and the config means editing either of those reuses the cached
 # source instead of cloning several GB again. HTTP/1.1, because git over
 # HTTP/2 stalls against this host (fetch-source.sh --http1).
+ARG MICA_APT_SNAPSHOT
 RUN bash /bsp/scripts/apt-install.sh git ca-certificates
 ARG KERNEL_REPO
 ARG KERNEL_COMMIT
@@ -68,27 +69,39 @@ COPY kernel/config/${KERNEL_CONFIG} /ksrc/.config
 COPY kernel/config/ /bsp/board/kernel/config/
 COPY --from=mica-common mica-required.fragment /mica-required.fragment
 COPY --from=mica-trust signer.cert.pem /ksrc/certs/mica-verity-anchor.pem
-ARG KERNEL_PROFILE
 RUN eval "export CROSS_COMPILE=\$CROSS_COMPILE_${BUILDARCH}"; \
     bash /bsp/build/kernel/configure.sh /ksrc /mica-required.fragment /bsp/board/kernel/config "${KERNEL_FRAGMENTS}" /bsp/board/kernel/hooks
 
-ENV KBUILD_BUILD_TIMESTAMP="@1577836800" KBUILD_BUILD_USER=mica KBUILD_BUILD_HOST=mica-build SOURCE_DATE_EPOCH=1577836800
+# KBUILD_BUILD_VERSION: the `#1` in the version string, which Kbuild otherwise
+# counts up with every link of one tree -- the prod image below is its second.
+ENV KBUILD_BUILD_TIMESTAMP="@1577836800" KBUILD_BUILD_USER=mica KBUILD_BUILD_HOST=mica-build KBUILD_BUILD_VERSION=1 SOURCE_DATE_EPOCH=1577836800
 
+# ONE COMPILE, BOTH PROFILES. The first profile is built whole; every further
+# one only moves the forced command line (common/kernel/set-profile.sh) and
+# relinks the Image in the same tree, taking the modules, the device tree and
+# the regulatory certificates of the first build, which do not read the
+# command line. KERNEL_PROFILES=prod alone is a clean prod build, what
+# `make kernel-profile-test` compares the relinked one with.
 ARG KERNEL_EXPECT
 ARG KERNEL_DTB
 ARG KERNEL_DTB_ARTIFACT
-RUN eval "export CROSS_COMPILE=\$CROSS_COMPILE_${BUILDARCH}"; \
-    bash /bsp/build/kernel/build.sh /ksrc "${KERNEL_EXPECT}" "${KERNEL_DTB}" "/${KERNEL_DTB_ARTIFACT}" /bsp/board /bsp/board/kernel/hooks
-
+ARG KERNEL_PROFILES="dev prod"
 COPY --from=mica-common export-regdb-certs.py /export-regdb-certs.py
-RUN python3 /export-regdb-certs.py /ksrc /regdb-certs.pem
+RUN set -eu; eval "export CROSS_COMPILE=\$CROSS_COMPILE_${BUILDARCH}"; first=""; \
+    for profile in ${KERNEL_PROFILES}; do \
+        bash /bsp/common/kernel/set-profile.sh /ksrc "${profile}" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE}"; \
+        if [ -z "${first}" ]; then \
+            bash /bsp/build/kernel/build.sh /ksrc "${KERNEL_EXPECT}" "${KERNEL_DTB}" "/${KERNEL_DTB_ARTIFACT}" /bsp/board /bsp/board/kernel/hooks; \
+            python3 /export-regdb-certs.py /ksrc /regdb-certs.pem; \
+            first="${profile}"; \
+        else \
+            bash /bsp/build/kernel/build.sh --image /ksrc "${KERNEL_EXPECT}"; \
+        fi; \
+        out="/out/${profile}"; mkdir -p "${out}"; \
+        cp /ksrc/arch/arm64/boot/Image /ksrc/System.map /ksrc/include/config/kernel.release /modules.tar "/${KERNEL_DTB_ARTIFACT}" /regdb-certs.pem "${out}/"; \
+        cp /ksrc/.config "${out}/config"; \
+    done; \
+    [ -n "${first}" ] || { echo "error: KERNEL_PROFILES names no profile" >&2; exit 1; }
 
 FROM scratch AS artifact
-ARG KERNEL_DTB_ARTIFACT
-COPY --from=build /ksrc/arch/arm64/boot/Image /
-COPY --from=build /modules.tar /
-COPY --from=build /${KERNEL_DTB_ARTIFACT} /
-COPY --from=build /ksrc/.config /config
-COPY --from=build /ksrc/include/config/kernel.release /kernel.release
-COPY --from=build /ksrc/System.map /System.map
-COPY --from=build /regdb-certs.pem /
+COPY --from=build /out/ /

@@ -58,20 +58,3 @@ grep -q '^CONFIG_CMDLINE=".*dm_verity.require_signatures=1' .config
 bash "$(dirname "${BASH_SOURCE[0]}")/../../common/kernel/floor-check.sh" "${SRC}" "${FRAGMENT}"
 
 [ ! -f "${HOOKS}/assert.sh" ] || bash "${HOOKS}/assert.sh" "${SRC}"
-
-# THE IMAGE PROFILE. The kernel forces its built-in command line
-# (CMDLINE_FORCE), so the profile the assembly signs for a product is part of
-# this kernel: the committed line (the board's BOARD_CMDLINE_ARGS) plus exactly
-# one mica.profile=<dev|prod> token, written for prod too. One build per
-# profile (KERNEL_PROFILE); boards/README.md describes both kernels in the bundle.
-case "${KERNEL_PROFILE:-}" in
-dev | prod) ;;
-*) echo "error: KERNEL_PROFILE='${KERNEL_PROFILE:-}' is not dev or prod; the board's Makefile builds one kernel per profile" >&2; exit 1 ;;
-esac
-board_line="$(sed -n 's/^CONFIG_CMDLINE="\(.*\)"$/\1/p' .config)"
-[ -n "${board_line}" ] || { echo "error: the resolved .config carries no CONFIG_CMDLINE to add the profile to" >&2; exit 1; }
-case " ${board_line} " in *" mica.profile"* | *" mica.recovery"*) echo "error: the board's command line already names mica.profile or mica.recovery: ${board_line}" >&2; exit 1 ;; esac
-scripts/config --set-str CMDLINE "${board_line} mica.profile=${KERNEL_PROFILE}"
-make "${CROSS[@]}" olddefconfig
-grep -Fqx -- "CONFIG_CMDLINE=\"${board_line} mica.profile=${KERNEL_PROFILE}\"" .config || { echo "error: CONFIG_CMDLINE is not the board line with mica.profile=${KERNEL_PROFILE} after olddefconfig" >&2; exit 1; }
-grep -Fqx -- CONFIG_CMDLINE_FORCE=y .config || { echo "error: CONFIG_CMDLINE_FORCE is not set; the profile would not be enforced" >&2; exit 1; }

@@ -2,6 +2,24 @@
 
 ## 2026-09-15 [progress]
 
+Kernel and U-Boot builds (user decisions on the kernel speed report). FIT boards
+compile their kernel once: dev is built whole, prod only moves the forced command
+line (`common/kernel/set-profile.sh`) and relinks the Image in the same tree, with
+the modules, device tree and regulatory certificates of that build;
+`KBUILD_BUILD_VERSION=1` keeps the relink's version string. `make <board>-kernel-profile-test`
+builds prod alone and requires every file byte-identical to the relinked one
+(`common/kernel/profile-test.sh`). Every kernel and U-Boot builder installs its
+toolchain from the Ubuntu archive snapshot 20260915T000000Z, pinned by the sha256
+of each suite's signed InRelease in the `ubuntu-<suite>` source rows of
+`locks/upstream.lock` (`tools/apt-snapshot.sh`, `common/scripts/apt-install.sh`,
+part of the kernel and U-Boot inputs); the s905x5m recovery packer is fetched by
+`ADD --checksum` into the pinned Debian image with nothing installed. The profile
+test found the s905x5m kernel was not reproducible at all: three vendor
+`common_drivers` Makefiles compiled a wall-clock `BUILD_TIME`; kernel patch 0018
+takes it from `SOURCE_DATE_EPOCH`.
+
+## 2026-09-15 [progress]
+
 The s905x5m Bluetooth userland builds in the mica-build-env `c` image, pinned by
 digest in `locks/mica-build-env.lock`, instead of installing Debian's
 build-essential unpinned on `debian:trixie-slim`, so its compiler cannot move under

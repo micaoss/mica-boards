@@ -16,10 +16,11 @@
 #
 #   kernel    boards/<board>/kernel/, bsp.env, Makefile, flash/assets/ (a boot logo), board.env's
 #             BOARD_CMDLINE_ARGS and MICA_ARCH, common/kernel/, common/scripts/, common/trust/, the kernel
-#             git row, the ubuntu:24.04 image row, the verity certificate, the builder
+#             git row, the ubuntu:24.04 image row, the Ubuntu archive snapshot rows, the verity certificate,
+#             the builder
 #   uboot     boards/<board>/loader/, bsp.env, Makefile, common/uboot/, common/scripts/, common/trust/, the
 #             uboot and rkbin git rows, the board's source rows, the ubuntu and debian image rows, the
-#             boot certificate, the builder
+#             Ubuntu archive snapshot rows, the boot certificate, the builder
 #   firmware  boards/<board>/firmware/ and board.env's BOARD_FIRMWARE_FILES
 #   board     board.env, evidence.json, images.tsv, manifests/, outputs.tsv, the verity certificate
 #
@@ -55,6 +56,7 @@ env_value() { printf 'env %s %s\n' "$1" "$(sed -n "s/^$1=//p" "${B}/board.env")"
 git_row() { awk -F'\t' -v n="${BOARD}-$1" '$1 == "git" && $2 == n { printf "pin git-%s %s %s %s\n", "'"$1"'", $3, $4, $5 }' locks/upstream.lock; }
 source_rows() { awk -F'\t' -v p="${BOARD}-" '$1 == "source" && index($2, p) == 1 { printf "pin source-%s %s %s %s %s\n", substr($2, length(p) + 1), $3, $4, $5, $6 }' locks/upstream.lock; }
 image_row() { printf 'pin image-%s %s\n' "$1" "$(bash tools/from.sh --upstream "$1")"; }
+apt_rows() { printf 'pin apt-snapshot %s\n' "$(bash tools/apt-snapshot.sh)"; }
 cert() { # <name> <file>
     [ -f "$2" ] || die "$2 does not exist; the ${1} certificate is an input of the ${COMPONENT} component"
     printf 'cert %s %s\n' "$1" "$(sha256sum "$2" | cut -d' ' -f1)"
@@ -71,6 +73,7 @@ FIT="${FIT_TRUST_CERT:-meta/boot/signer.cert.pem}"
         env_value MICA_ARCH
         git_row kernel
         image_row ubuntu:24.04
+        apt_rows
         cert verity "${VERITY}"
         printf 'builder %s\n' "${ARCH}"
         ;;
@@ -81,6 +84,7 @@ FIT="${FIT_TRUST_CERT:-meta/boot/signer.cert.pem}"
         source_rows
         image_row ubuntu:24.04
         image_row debian:trixie-slim
+        apt_rows
         cert boot "${FIT}"
         # U-Boot is cross-compiled on x86-64 for every board: it ships FIT host tools the assembly runs on x86-64.
         printf 'builder %s\n' amd64

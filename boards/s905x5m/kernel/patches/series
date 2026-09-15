@@ -14,3 +14,4 @@
 0015-usb2-phy-reset-once-per-phy-instance.patch
 0016-usb2-phy-log-controller-reset-pulse.patch
 0017-hdmitx-resync-drm-after-hotplug.patch
+0018-common-drivers-build-time-from-source-date-epoch.patch

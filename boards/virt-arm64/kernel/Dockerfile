@@ -49,15 +49,18 @@ ARG DEBIAN_FRONTEND=noninteractive
 # so there is no .dts in this family and nothing to compile. The cross
 # toolchain is installed only when the board's architecture is not the
 # builder's; an empty KERNEL_CROSS_PACKAGES installs nothing more.
+# From the Ubuntu archive snapshot locks/upstream.lock pins (MICA_APT_SNAPSHOT,
+# common/scripts/apt-install.sh), so the toolchain cannot move under the pins.
 ARG KERNEL_CROSS_PACKAGES
 ARG KERNEL_ARCH
 ARG BUILDARCH
+ARG MICA_APT_SNAPSHOT
+COPY --from=bsp-scripts apt-install.sh /bsp/scripts/apt-install.sh
 RUN cross=""; [ "${BUILDARCH}" = "${KERNEL_ARCH}" ] || cross="${KERNEL_CROSS_PACKAGES}"; \
-    apt-get update && apt-get install -y --no-install-recommends \
+    bash /bsp/scripts/apt-install.sh \
         git ca-certificates build-essential bc bison flex \
         libssl-dev libelf-dev python3 kmod cpio xz-utils zstd \
-        ${cross} \
-    && rm -rf /var/lib/apt/lists/*
+        ${cross}
 
 # THE SOURCE, at the tag its git row pins, checked to be the commit the row
 # records: a tag is a name upstream can move, and a moved tag stops the build

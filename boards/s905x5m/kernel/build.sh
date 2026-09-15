@@ -4,6 +4,12 @@
 # complete module set and pack what the bundle takes.
 #
 #   build.sh <source-tree> <expected-kernel-release> <dtb> <dtb-artifact-path> <board-dir> <board-hooks-dir>
+#   build.sh --image <source-tree> <expected-kernel-release>
+#
+# --image relinks only the Image of a tree this script built before, after its
+# command line moved to another profile (common/kernel/set-profile.sh): with the
+# same make variables Kbuild recompiles only the objects that read
+# CONFIG_CMDLINE; the modules and the device tree are those of the first build.
 #
 # The device tree is registered in the vendor dts Makefile when the tree does
 # not list it. modules.tar is the BSP interface and must already carry the
@@ -11,6 +17,17 @@
 # depmod -- so depmod runs here after the board's modules hook has installed
 # its modules under /kmods. CROSS_COMPILE comes from the environment.
 set -euo pipefail
+CROSS=(ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE-}")
+# The vendor tree needs this warning demoted; the relink passes the same value,
+# or Kbuild would see changed flags and recompile everything.
+KCFLAGS=-Wno-error=enum-int-mismatch
+if [ "${1-}" = --image ]; then
+    [ "$#" -eq 3 ] || { echo "usage: build.sh --image <source-tree> <expected-kernel-release>" >&2; exit 1; }
+    cd "$2"
+    make "${CROSS[@]}" -j"$(nproc)" KCFLAGS="${KCFLAGS}" Image
+    [ "$(cat include/config/kernel.release)" = "$3" ] || { echo "error: the relinked tree is $(cat include/config/kernel.release); this family expects $3" >&2; exit 1; }
+    exit 0
+fi
 [ "$#" -eq 6 ] || {
     echo "usage: build.sh <source-tree> <expected-kernel-release> <dtb> <dtb-artifact-path> <board-dir> <board-hooks-dir>" >&2
     exit 1
@@ -25,12 +42,11 @@ HOOKS="$6"
 [ -n "${DTB}" ] || { echo "error: build.sh was given no device tree to build (KERNEL_DTB in bsp.env)" >&2; exit 1; }
 
 cd "${SRC}"
-CROSS=(ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE-}")
 DTS_MAKEFILE=common_drivers/arch/arm64/boot/dts/amlogic/Makefile
 if ! grep -Fq "dtb-y += ${DTB}" "${DTS_MAKEFILE}"; then
     printf '%s\n' "dtb-y += ${DTB}" >> "${DTS_MAKEFILE}"
 fi
-make "${CROSS[@]}" -j"$(nproc)" KCFLAGS=-Wno-error=enum-int-mismatch \
+make "${CROSS[@]}" -j"$(nproc)" KCFLAGS="${KCFLAGS}" \
     Image modules "amlogic/${DTB}"
 kernel_release="$(cat include/config/kernel.release)"
 echo "kernel release: ${kernel_release}"

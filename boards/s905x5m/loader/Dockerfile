@@ -8,7 +8,11 @@ ARG MICA_IMAGE_UBUNTU_2404
 FROM --platform=$BUILDPLATFORM ${MICA_IMAGE_UBUNTU_2404} AS source
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# From the Ubuntu archive snapshot locks/upstream.lock pins (MICA_APT_SNAPSHOT,
+# common/scripts/apt-install.sh).
+ARG MICA_APT_SNAPSHOT
+COPY --from=bsp-scripts apt-install.sh /bsp/scripts/apt-install.sh
+RUN bash /bsp/scripts/apt-install.sh \
         autoconf \
         automake \
         bc \
@@ -41,8 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         vim-common \
         xxd \
         xz-utils \
-        zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
+        zlib1g-dev
 
 ARG UBOOT_REPO
 ARG UBOOT_COMMIT
@@ -225,7 +228,7 @@ ENV PATH=/opt/riscv-none-gcc/8.2.0-2.2-20190521-0004/bin:$PATH
 
 # Native Mica OS boot uses the platform/display fixes and the signed-file policy.
 ENV SOURCE_DATE_EPOCH=1577836800
-RUN apt-get update && apt-get install -y --no-install-recommends device-tree-compiler && rm -rf /var/lib/apt/lists/*
+RUN bash /bsp/scripts/apt-install.sh device-tree-compiler
 # ---- the third-party prefix ends here: the toolchain and the upstream source,
 # nothing of this repository's (the only stage a CI cache holds; see
 # common/scripts/buildx.sh). The build continues on it with the

@@ -61,6 +61,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # tools this build ships (mkimage, fdt_add_pubkey, fit_check_sign, dumpimage)
 # are binaries of the builder's architecture.
 ARG BUILDARCH
+ARG MICA_APT_SNAPSHOT
 RUN bash /bsp/scripts/apt-install.sh \
         git ca-certificates build-essential bc bison flex \
         libssl-dev python3 python3-setuptools python3-pyelftools \

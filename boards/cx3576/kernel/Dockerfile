@@ -32,6 +32,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # and binutils there already answer to aarch64-linux-gnu-*, and there is no
 # gcc-aarch64-linux-gnu cross package to install. On amd64 it cross-compiles.
 ARG BUILDARCH
+ARG MICA_APT_SNAPSHOT
 RUN bash /bsp/scripts/apt-install.sh \
         git ca-certificates build-essential bc bison flex \
         libssl-dev libelf-dev python3 kmod patch \
@@ -76,7 +77,6 @@ ARG KERNEL_CONFIG
 COPY kernel/config/${KERNEL_CONFIG} /ksrc/.config
 COPY --from=mica-common mica-required.fragment /mica-required.fragment
 COPY --from=mica-trust signer.cert.pem /ksrc/certs/mica-verity-anchor.pem
-ARG KERNEL_PROFILE
 RUN bash /bsp/build/kernel/configure.sh /ksrc /mica-required.fragment /bsp/board/kernel/hooks
 
 # FOUR PINS, AND ALL FOUR ARE LOAD-BEARING. The first three are what Kbuild
@@ -91,18 +91,41 @@ RUN bash /bsp/build/kernel/configure.sh /ksrc /mica-required.fragment /bsp/board
 # Stays below configure.sh and above build.sh: nothing in the configuration
 # step reads a clock, and every artefact these values stabilise is produced
 # below.
+# KBUILD_BUILD_VERSION: the `#1` in the version string, which Kbuild otherwise
+# counts up with every link of one tree -- the prod image below is the tree's
+# second link.
 ENV KBUILD_BUILD_TIMESTAMP="@1577836800" \
     KBUILD_BUILD_USER=mica \
     KBUILD_BUILD_HOST=mica-build \
+    KBUILD_BUILD_VERSION=1 \
     SOURCE_DATE_EPOCH=1577836800
 
+# ONE COMPILE, BOTH PROFILES. The first profile is built whole; every further
+# one only moves the forced command line (common/kernel/set-profile.sh) and
+# relinks the Image in the same tree, taking the modules, the device tree and
+# the regulatory certificates of the first build, which do not read the
+# command line. KERNEL_PROFILES=prod alone is a clean prod build, what
+# `make kernel-profile-test` compares the relinked one with.
 ARG KERNEL_EXPECT
 ARG KERNEL_DTB
 ARG KERNEL_DTB_ARTIFACT
-RUN bash /bsp/build/kernel/build.sh /ksrc "${KERNEL_EXPECT}" "${KERNEL_DTB}" "/${KERNEL_DTB_ARTIFACT}" /bsp/board/kernel/hooks
-
+ARG KERNEL_PROFILES="dev prod"
 COPY --from=mica-common export-regdb-certs.py /bsp/kernel/export-regdb-certs.py
-RUN python3 /bsp/kernel/export-regdb-certs.py /ksrc /regdb-certs.pem
+RUN set -eu; first=""; \
+    for profile in ${KERNEL_PROFILES}; do \
+        bash /bsp/common/kernel/set-profile.sh /ksrc "${profile}" ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-; \
+        if [ -z "${first}" ]; then \
+            bash /bsp/build/kernel/build.sh /ksrc "${KERNEL_EXPECT}" "${KERNEL_DTB}" "/${KERNEL_DTB_ARTIFACT}" /bsp/board/kernel/hooks; \
+            python3 /bsp/kernel/export-regdb-certs.py /ksrc /regdb-certs.pem; \
+            first="${profile}"; \
+        else \
+            bash /bsp/build/kernel/build.sh --image /ksrc "${KERNEL_EXPECT}"; \
+        fi; \
+        out="/out/${profile}"; mkdir -p "${out}"; \
+        cp /ksrc/arch/arm64/boot/Image /ksrc/System.map /kernel.release /modules.tar "/${KERNEL_DTB_ARTIFACT}" /regdb-certs.pem "${out}/"; \
+        cp /ksrc/.config "${out}/config"; \
+    done; \
+    [ -n "${first}" ] || { echo "error: KERNEL_PROFILES names no profile" >&2; exit 1; }
 
 # THE RESOLVED CONFIG IS AN ARTIFACT: what olddefconfig decided over the board
 # config merged with the common fragment, the only form of the `=y` floor the
@@ -114,11 +137,4 @@ RUN python3 /bsp/kernel/export-regdb-certs.py /ksrc /regdb-certs.pem
 # it stays in the build stage. The bundle producer stages named files, so a
 # new file here reaches the bundle only when it is named there.
 FROM scratch AS artifact
-ARG KERNEL_DTB_ARTIFACT
-COPY --from=build /ksrc/arch/arm64/boot/Image /
-COPY --from=build /ksrc/.config /config
-COPY --from=build /ksrc/System.map /
-COPY --from=build /kernel.release /
-COPY --from=build /modules.tar /
-COPY --from=build /${KERNEL_DTB_ARTIFACT} /
-COPY --from=build /regdb-certs.pem /
+COPY --from=build /out/ /

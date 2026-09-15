@@ -7,14 +7,11 @@ FROM --platform=linux/386 ${MICA_IMAGE_DEBIAN_TRIXIE} AS packer
 ARG PACKER_URL
 ARG PACKER_SHA256
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN set -eu; \
-    curl -fsSL "${PACKER_URL}" -o /usr/local/bin/aml_image_v2_packer; \
-    echo "${PACKER_SHA256}  /usr/local/bin/aml_image_v2_packer" | sha256sum -c -; \
-    chmod +x /usr/local/bin/aml_image_v2_packer
+# Fetched by BuildKit at its pinned sha256 (the s905x5m-aml-image-v2-packer source
+# row): nothing is installed into this image, so the packer runs on exactly the
+# pinned Debian image.
+ADD --chmod=0755 --checksum=sha256:${PACKER_SHA256} ${PACKER_URL} /usr/local/bin/aml_image_v2_packer
+RUN echo "${PACKER_SHA256}  /usr/local/bin/aml_image_v2_packer" | sha256sum -c -
 
 FROM packer AS package-base
 

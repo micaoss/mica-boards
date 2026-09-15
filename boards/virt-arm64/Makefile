@@ -59,6 +59,7 @@ KERNEL_BUILD = TRUST_DIR="$$(bash $(TRUST_STAGE) "$(VERITY_TRUST_CERT)" "$(BSP_O
 	KERNEL_SOURCE="$$($(PIN) git $(BOARD)-kernel url)" && KERNEL_VERSION="$$($(PIN) git $(BOARD)-kernel ref)" && \
 	KERNEL_COMMIT="$$($(PIN) git $(BOARD)-kernel commit)" && \
 	bash ../../common/scripts/buildx.sh $(BOARD)-kernel src --build-context mica-common=../../common/kernel \
+	  --build-context bsp-scripts=../../common/scripts --build-arg "MICA_APT_SNAPSHOT=$$(bash ../../tools/apt-snapshot.sh)" \
 	  --build-context "mica-trust=$$TRUST_DIR" \
 	  --build-arg BOARD=$(BOARD) --build-arg KERNEL_SOURCE=$$KERNEL_SOURCE \
 	  --build-arg KERNEL_VERSION=$$KERNEL_VERSION --build-arg KERNEL_COMMIT=$$KERNEL_COMMIT $(KERNEL_ARGS) \
