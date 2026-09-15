@@ -17,9 +17,9 @@
 #   a  no non-directory path is in two archives of one pool, except packages
 #      that every one declare mutual unversioned Conflicts, by name or through
 #      a virtual name each provides; Replaces is refused.
-#   b  Architecture, the package set (producers plus lock), one git stamp over
-#      the archives built here, imported archives equal to their lock rows, and
-#      the Depends closure.
+#   b  Architecture, the package set (producers plus lock), each archive built
+#      here at its producer's declared version (version.env), imported archives
+#      equal to their lock rows, and the Depends closure.
 #   c  two builds under one SOURCE_DATE_EPOCH are byte-identical.
 #   d  every package ships a non-empty /usr/share/doc/<package>/copyright.
 #   e  each package ships as many multi-user.target.wants symlinks as its
@@ -144,11 +144,12 @@ for row in "${ROWS[@]}"; do
 done
 
 # a, b, d, e, f, g, h, i: one container reading both pools, with the lock rows staged.
-# Archives a release reuses from its board's previous release (tools/deb/reuse.sh,
-# which proved each one) are held to their rows the way imports are.
 : >"${TMPL}/lock.tsv"
-for a in "${ARCHES[@]}"; do
-    [ ! -f "${DIST}/${a}/reused.tsv" ] || cut -f1-6 "${DIST}/${a}/reused.tsv" >>"${TMPL}/lock.tsv"
+# Each producer's declared version (version.env), which every archive it built must carry.
+: >"${TMPL}/versions.tsv"
+for row in "${ROWS[@]}"; do
+    read -r producer _rest <<<"${row}"
+    printf '%s %s\n' "${producer}" "$(bash "${PRODUCERS_SH}" --version-for "${producer}")" >>"${TMPL}/versions.tsv" || exit 1
 done
 STATIC_LOG="${WORK}/static.log"
 static_status=0
@@ -183,6 +184,8 @@ mutually_conflicting() {
 }
 
 ARCHES=("$@")
+declare -A DECLARED_VERSION=()
+while read -r producer version _epoch; do DECLARED_VERSION["${producer}"]="${version}"; done </tmpl/versions.tsv
 # The lock rows, keyed <package>|<arch>; an `all` row belongs to every pool.
 declare -A LOCK_VERSION=() LOCK_SHA=() LOCK_REPO=() LOCK_COMMIT=()
 LOCKED_NAMES=" "
@@ -303,7 +306,6 @@ SCRIPTS_N=0
 # only where the comparison or resolution actually happens.
 ALL_COMPARED_N=0
 VIRTUAL_RESOLVED_N=0
-BUILT_VERSIONS=()
 EXTERNALS=()
 VIRTUALS=()
 # sha256 of every Architecture: all archive, per pool, keyed <package>|<pool>.
@@ -407,8 +409,8 @@ for arch in "${ARCHES[@]}"; do
         fail "${arch}: ${pool} holds archive(s) no discovered producer declares and no lock row names:${orphan}. Most likely a producer was deleted or renamed and its output was left behind; repo.sh indexes it and the composer would install it"
     fi
 
-    # b -- imported archives must equal their lock rows; the rest must share
-    # one well-formed stamp (everything after the last `+`).
+    # b -- imported archives must equal their lock rows; the rest must carry
+    # their producer's declared version.
     built_versions=()
     for d in "${debs[@]}"; do
         n="$(dpkg-deb --field "${pool}/${d}" Package)"
@@ -428,29 +430,19 @@ for arch in "${ARCHES[@]}"; do
             fail "${n} ${arch}: imported by deps/packages/${n}.json as ${LOCK_VERSION[${key}]} from ${LOCK_REPO[${key}]}@${LOCK_COMMIT[${key}]:0:12} (sha256 ${LOCK_SHA[${key}]:0:16}), but the pool holds ${v} from ${actual_repo:-?}@${actual_commit:0:12} (sha256 ${actual_sha:0:16}). A locked archive is its row or it is not in the pool; \`make pool\` refetches it"
         fi
     done
-    pool_stamps=()
-    for v in ${built_versions[@]+"${built_versions[@]}"}; do
-        stamp="${v##*+}"
-        case "${stamp}" in
-        git[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-* | \
-            git[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].dirty-*)
-            pool_stamps+=("${stamp}")
-            ;;
-        *)
-            fail "${arch}: the version '${v}' carries no git<commit>[.dirty]-<rev> stamp after its last '+'. Every archive is stamped by tools/deb/version.sh; a version without the stamp cannot be attributed to a commit"
-            ;;
-        esac
+    wrong=""
+    for d in "${debs[@]}"; do
+        n="$(dpkg-deb --field "${pool}/${d}" Package)"
+        v="$(dpkg-deb --field "${pool}/${d}" Version)"
+        [ -z "$(lock_key "${n}" "${arch}")" ] || continue
+        want="${DECLARED_VERSION[${PKG_PRODUCER[${n}]:-}]:-}"
+        [ "${v}" = "${want}" ] || wrong="${wrong} ${n}=${v}(declared ${want:-none})"
     done
-    pool_stamp="$(printf '%s\n' ${pool_stamps[@]+"${pool_stamps[@]}"} | LC_ALL=C sort -u | tr '\n' ' ')"
-    if [ "${#built_versions[@]}" -eq 0 ]; then
-        pass "${arch}: every archive in the pool is imported by the lock; no built-here stamp to compare"
-    elif [ "${#pool_stamps[@]}" -eq "${#built_versions[@]}" ] &&
-        [ "$(printf '%s\n' "${pool_stamps[@]}" | LC_ALL=C sort -u | wc -l)" -eq 1 ]; then
-        pass "${arch}: one git stamp across the archives built here (${pool_stamp% }, ${#built_versions[@]} archive(s))"
+    if [ -z "${wrong}" ]; then
+        pass "${arch}: every archive built here carries its producer's declared version (${#built_versions[@]} archive(s))"
     else
-        fail "${arch}: the archives built here carry more than one git stamp [${pool_stamp% }]. Rebuild them whole with \`make pool\`"
+        fail "${arch}: archive(s) not at their producer's declared version (version.env):${wrong}. Rebuild them with \`make pool\`"
     fi
-    BUILT_VERSIONS+=(${built_versions[@]+"${built_versions[@]}"})
 
     # Local-virtual names: what this pool's archives declare in Provides.
     declare -A PROVIDED_BY=()
@@ -671,7 +663,7 @@ done
 
 # i -- each `all` package is the same bytes in every pool (with one pool gated,
 # the job that merges the pools compares them).
-[ "${#ARCHES[@]}" -gt 1 ] || echo "note: one pool gated (${ARCHES[*]}); the all-architecture and cross-pool stamp comparisons run where every pool is present"
+[ "${#ARCHES[@]}" -gt 1 ] || echo "note: one pool gated (${ARCHES[*]}); the all-architecture comparison runs where every pool is present"
 for pkg in ${ALL_PKGS}; do
     [ "${#ARCHES[@]}" -gt 1 ] || continue
     seen=""
@@ -692,20 +684,6 @@ for pkg in ${ALL_PKGS}; do
         fail "${pkg}: Architecture: all, but the pools hold DIFFERENT bytes under that one filename (${where% }). One build exports into every pool; two differing copies mean the composer installs a different package depending on which pool it resolved"
     fi
 done
-
-# One stamp across every pool, not only within each.
-if [ "${#ARCHES[@]}" -eq 1 ]; then
-    :
-elif [ "${#BUILT_VERSIONS[@]}" -eq 0 ]; then
-    pass "every archive in every pool is imported by the lock; no built-here stamp to compare across pools"
-else
-all_stamps="$(printf '%s\n' "${BUILT_VERSIONS[@]}" | sed 's/^.*+//' | LC_ALL=C sort -u | tr '\n' ' ')"
-if [ "$(printf '%s\n' "${BUILT_VERSIONS[@]}" | sed 's/^.*+//' | LC_ALL=C sort -u | wc -l)" -eq 1 ]; then
-    pass "one git stamp across the archives built here in every pool (${all_stamps% })"
-else
-    fail "the archives built here carry more than one git stamp across the pools [${all_stamps% }]: they were not built from one commit"
-fi
-fi
 
 echo "note: local virtual dependencies satisfied by a Provides in the pool: $(printf '%s\n' ${VIRTUALS[@]+"${VIRTUALS[@]}"} | LC_ALL=C sort -u | tr '\n' ' ')"
 echo "note: external dependencies resolved by the composer, not by this pool: $(printf '%s\n' ${EXTERNALS[@]+"${EXTERNALS[@]}"} | LC_ALL=C sort -u | tr '\n' ' ')"
@@ -752,7 +730,7 @@ for i in "${!ARCHES[@]}"; do
 
     # The rows that build for this pool, in discovery order.
     candidates=()
-    locked_names=" $(awk -F'\t' -v a="${arch}" '$3 == a || $3 == "all" { printf "%s ", $1 }' "${TMPL}/lock.tsv")"
+    locked_names=" "
     for row in "${ROWS[@]}"; do
         read -r producer dir arches packages _enablement <<<"${row}"
         case ",${arches}," in

@@ -12,7 +12,6 @@ ARG MICA_DEB_ARCH
 ARG SOURCE_DATE_EPOCH
 # Provenance, written into the control file by pack.sh; see tools/deb/README.md.
 ARG MICA_DEB_SOURCE_REPO
-ARG MICA_DEB_SOURCE_COMMIT
 RUN set -eu; \
     install -D -m 0755 /in/hwinit-bluetooth /stage/usr/lib/mica/hwinit-bluetooth; \
     install -D -m 0644 /in/bluetooth.conf /stage/etc/mica/bluetooth.conf; \

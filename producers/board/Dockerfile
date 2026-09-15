@@ -20,7 +20,6 @@ ARG MICA_DEB_ARCH
 ARG SOURCE_DATE_EPOCH
 # Provenance, written into the control file by pack.sh; see tools/deb/README.md.
 ARG MICA_DEB_SOURCE_REPO
-ARG MICA_DEB_SOURCE_COMMIT
 ARG MICA_DEB_INSTANCE
 RUN bash /in/stage.sh
 FROM scratch AS out

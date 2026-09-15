@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared by tools/deb/publish.sh, tools/publish-components.sh and tools/reuse.sh: the registry
+# Shared by tools/deb/publish.sh, tools/deb/version-guard.sh, tools/publish-components.sh and tools/reuse.sh: the registry
 # declaration, the token, the OCI client (oci.sh), the release this checkout
 # is and the origin-derived repository name. Sourced, not executed.
 [ -n "${BASH_VERSION:-}" ] || { echo "registry.sh: bash only" >&2; exit 1; }
@@ -91,6 +91,12 @@ artifact_annotations() { # <repo-name> <commit> <created-iso> <release> <out.jso
     jq -n --arg repo "$1" --arg commit "$2" --arg created "$3" --arg version "$4" \
         --arg url "${MICA_SOURCE_URL%/}/$1" \
         '{"org.opencontainers.image.revision": $commit, "org.opencontainers.image.created": $created, "org.opencontainers.image.source": $url, "org.opencontainers.image.version": $version, "mica.source-repo": $repo, "mica.source-commit": $commit}' >"$5"
+}
+
+# The annotations of a pool manifest: only what does not change with the
+# release (mica:docs/design/release-lock.md section 2).
+pool_annotations() { # <repo-name> <arch> <out.json>
+    jq -n --arg repo "$1" --arg arch "$2" '{"mica.source-repo": $repo, "mica.arch": $arch}' >"$3"
 }
 
 # Where the publishers leave the rows of the release lock (tools/release-lock.sh

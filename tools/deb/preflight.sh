@@ -100,18 +100,16 @@ while read -r producer dir arches _packages _enablement; do
         FROM_IMAGES=""
         PREPARE=""
         PREFLIGHT=""
-        VERSION_FROM=""
         # shellcheck disable=SC1090
         [ -z "${instance_env}" ] || . "${REPO_ROOT}/${instance_env}"
         # shellcheck disable=SC1090
         . "${producer_dir}/producer.env"
-        printf 'C=%s\nF=%s\nP=%s\nL=%s\nV=%s\n' "${BUILD_CONTEXTS}" "${FROM_IMAGES}" "${PREPARE}" "${PREFLIGHT}" "${VERSION_FROM}"
+        printf 'C=%s\nF=%s\nP=%s\nL=%s\n' "${BUILD_CONTEXTS}" "${FROM_IMAGES}" "${PREPARE}" "${PREFLIGHT}"
     )"
     contexts="$(printf '%s\n' "${vals}" | sed -n 's/^C=//p')"
     from_images="$(printf '%s\n' "${vals}" | sed -n 's/^F=//p')"
     prepare="$(printf '%s\n' "${vals}" | sed -n 's/^P=//p')"
     preflight="$(printf '%s\n' "${vals}" | sed -n 's/^L=//p')"
-    version_from="$(printf '%s\n' "${vals}" | sed -n 's/^V=//p')"
 
     # Build contexts (build.sh checks these too, for single-producer builds).
     for entry in ${contexts}; do
@@ -127,21 +125,9 @@ Every build context a producer names is a COMMITTED tree, so this is a path that
 moved or a checkout that is incomplete -- not something a build produces."
     done
 
-    # The upstream version source; its value's shape is left to build.sh.
-    if [ -n "${version_from}" ]; then
-        VF_N=$((VF_N + 1))
-        vf_path="${version_from%%:*}"
-        vf_key="${version_from##*:}"
-        if [ -z "${vf_path}" ] || [ -z "${vf_key}" ] || [ "${vf_path}" = "${version_from}" ]; then
-            note_missing "error: ${dir}/producer.env declares VERSION_FROM='${version_from}', which is not <repository-relative env file>:<KEY>."
-        elif [ ! -f "${REPO_ROOT}/${vf_path}" ]; then
-            note_missing "error: ${dir}/producer.env declares VERSION_FROM=${version_from} and ${vf_path} does not exist.
-The upstream version this producer stamps comes from that file or from nowhere."
-        elif [ -z "$(sed -n "s/^${vf_key}=//p" "${REPO_ROOT}/${vf_path}" | head -n1)" ]; then
-            note_missing "error: ${dir}/producer.env declares VERSION_FROM=${version_from} and ${vf_path} declares no non-empty ${vf_key}.
-An empty upstream version would compose into '+git<commit>-1', which dpkg accepts and orders below every real version."
-        fi
-    fi
+    # The declared version (version.env beside the control templates).
+    VF_N=$((VF_N + 1))
+    vf_out="$(bash "${PRODUCERS_SH}" --version-for "${producer}" 2>&1)" || note_missing "${vf_out}"
 
     # The hook file.
     if [ -n "${prepare}" ]; then
@@ -227,7 +213,7 @@ the packing step copies, so without it the build stages nothing."
 done <<<"${ROWS}"
 
 EXAMINED=$((CTX_N + HOOK_N + IMAGE_N + ARTEFACT_N + VF_N))
-BREAKDOWN="${CTX_N} build context(s), ${HOOK_N} PREPARE hook(s), ${IMAGE_N} base image(s), ${VF_N} upstream version source(s) and ${ARTEFACT_N} producer artefact(s)"
+BREAKDOWN="${CTX_N} build context(s), ${HOOK_N} PREPARE hook(s), ${IMAGE_N} base image(s), ${VF_N} declared version(s) and ${ARTEFACT_N} producer artefact(s)"
 
 # Examining nothing is refused rather than reported green.
 [ "${EXAMINED}" -gt 0 ] || {

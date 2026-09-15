@@ -46,7 +46,7 @@ git -C "${CLONE}" remote set-url origin https://example.invalid/testorg/mica-boa
 git ls-files -z | tar --null -T - -cf - | tar -xf - -C "${CLONE}"
 git -C "${CLONE}" add -A
 [ -z "$(git -C "${CLONE}" status --porcelain)" ] || git -C "${CLONE}" -c user.name=test -c user.email=test@example.invalid commit -qm "the working tree under test"
-HEAD="$(git -C "${CLONE}" rev-parse HEAD)"; C12="${HEAD:0:12}"
+HEAD="$(git -C "${CLONE}" rev-parse HEAD)"
 STAMP=20260101-0000
 
 # Fixture trust certificates (any bytes: they are hashed and carried, not parsed here).
@@ -70,34 +70,36 @@ outputs() { # <board>
         printf 'fixture %s %s\n' "${b}" "${path}" >"${p}"
     done < <(grep -v '^#' "${CLONE}/boards/${b}/outputs.tsv")
 }
-# A fixture archive of <package> at <arch> from HEAD.
-deb() { # <out> <package> <arch>
-    python3 - "$1" "$2" "$3" "${HEAD}" <<'PY'
+# A fixture archive of <package> at <arch> and <version>.
+deb() { # <out> <package> <arch> <version>
+    python3 - "$1" "$2" "$3" "$4" <<'PY'
 import io, sys, tarfile
-out, package, arch, commit = sys.argv[1:5]
+out, package, arch, version = sys.argv[1:5]
 def tgz(files):
     b = io.BytesIO()
     with tarfile.open(fileobj=b, mode='w:gz') as t:
         for name, data in files:
             i = tarfile.TarInfo(name); i.size = len(data); t.addfile(i, io.BytesIO(data))
     return b.getvalue()
-control = (f'Package: {package}\nVersion: 0.1.0+git{commit[:12]}-1\nArchitecture: {arch}\n'
-           f'Mica-Source-Repo: mica-boards\nMica-Source-Commit: {commit}\n').encode()
+control = (f'Package: {package}\nVersion: {version}\nArchitecture: {arch}\n'
+           f'Mica-Source-Repo: mica-boards\n').encode()
 with open(out, 'wb') as f:
     f.write(b'!<arch>\n')
     for n, d in [('debian-binary', b'2.0\n'), ('control.tar.gz', tgz([('./control', control)])), ('data.tar.gz', tgz([(f'./usr/share/doc/{package}/copyright', b'fixture\n')]))]:
         f.write(f'{n + "/":<16}{0:<12}{0:<6}{0:<6}{"100644":<8}{len(d):<10}`\n'.encode() + d + (b'\n' if len(d) % 2 else b''))
 PY
 }
-V="0.1.0+git${C12}-1"
 for b in x64 cx3576; do
     outputs "${b}"
     a="$(bash tools/boards.sh arch "${b}")"
     mkdir -p "${CLONE}/_out/debs/${a}/pool"
-    for p in $(bash tools/boards.sh packages "${b}"); do
-        case "${p}" in mica-wifi | mica-wifi-ap | mica-bluetooth) arch=all ;; *) arch="${a}" ;; esac
-        [ -f "${CLONE}/_out/debs/${a}/pool/${p}_${V}_${arch}.deb" ] || deb "${CLONE}/_out/debs/${a}/pool/${p}_${V}_${arch}.deb" "${p}" "${arch}"
-    done
+    while read -r producer _dir arches packages _enablement; do
+        V="$(bash tools/deb/producers.sh --version-for "${producer}" | cut -d' ' -f1)"
+        arch="${a}"; [ "${arches}" != all ] || arch=all
+        for p in ${packages//,/ }; do
+            [ -f "${CLONE}/_out/debs/${a}/pool/${p}_${V}_${arch}.deb" ] || deb "${CLONE}/_out/debs/${a}/pool/${p}_${V}_${arch}.deb" "${p}" "${arch}" "${V}"
+        done
+    done < <(bash tools/boards.sh producers "${b}")
 done
 
 # Previous releases, served from file://: <dir>/releases.json and <dir>/download/<tag>/mica-boards.lock.
@@ -176,6 +178,11 @@ else fail "reuse: $(tail -n3 "${WORK}/one-x64-${NEXT}-components.log")"; fi
 for c in board kernel; do
     [ "$(served one "${c}.x64.${NEXT}")" = "$(served one "${c}.x64.${STAMP}")" ] && pass "the reused ${c} tag names the published digest" || fail "${c}.x64.${NEXT} is another digest"
 done
+[ "$(served one "pool.x64.amd64.${NEXT}")" = "$(served one "pool.x64.amd64.${STAMP}")" ] && pass "unchanged archives: the next release's pool tag is the published pool digest" || fail "pool.x64.amd64.${NEXT} is another digest"
+m="$(curl -sf -H "Accept: ${MT}" "${REG}/one/mica-boards/manifests/pool.x64.amd64.${STAMP}")"
+[ "$(jq -c '.annotations' <<<"${m}")" = '{"mica.source-repo":"mica-boards","mica.arch":"amd64"}' ] &&
+    [ "$(jq -r '.layers[0].annotations["mica.inputs"]' <<<"${m}")" = "$(cd "${CLONE}" && bash tools/deb/package-inputs.sh board@x64 amd64)" ] &&
+    pass "a pool manifest carries only mica.source-repo and mica.arch, each layer its title and mica.inputs" || fail "pool annotations: $(jq -c '[.annotations, .layers[0].annotations]' <<<"${m}")"
 [ "$(bash tools/check-lock.sh lock "$(lock_of one "x64/${NEXT}")")" = valid ] && pass "the reusing release's lock is valid" || fail "reusing lock: $(bash tools/check-lock.sh lock "$(lock_of one "x64/${NEXT}")")"
 
 # 3. The next cx3576 release with another boot certificate rebuilds only its uboot.

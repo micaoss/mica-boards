@@ -17,9 +17,8 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${HERE}/../.." && pwd)"
 FROM_SH="${REPO_ROOT}/tools/from.sh"
-VERSION_SH="${HERE}/version.sh"
 PRODUCERS_SH="${HERE}/producers.sh"
-for p in "${REPO_ROOT}/Makefile" "${FROM_SH}" "${VERSION_SH}" "${PRODUCERS_SH}"; do
+for p in "${REPO_ROOT}/Makefile" "${FROM_SH}" "${PRODUCERS_SH}"; do
     [ -e "${p}" ] || {
         echo "error: ${p} does not exist. tools/deb/build.sh derives the repository as two levels above itself; if this file moved, that arithmetic moved with it" >&2
         exit 1
@@ -100,7 +99,7 @@ BUILD_CONTEXTS=""
 FROM_IMAGES=""
 BUILD_ARGS=""
 PREPARE=""
-VERSION_FROM=""
+PREPARE_INPUTS=""
 # shellcheck disable=SC1091
 . "${PRODUCER_ENV}"
 
@@ -111,72 +110,15 @@ for a in ${ARCHES}; do [ "${a}" != "${ARCH}" ] || in_arches=1; done
     exit 1
 }
 
-VERSION="$(bash "${VERSION_SH}")"
-[ -n "${VERSION}" ] || {
-    echo "error: ${VERSION_SH} printed no version (see its message above); the archives would be named around an empty string" >&2
+# The declared version and SOURCE_DATE_EPOCH (version.env beside the control
+# templates): nothing about the checkout -- its commit, its time, a dirty tree
+# -- reaches the archive, so a version names one set of bytes for good.
+read -r VERSION SOURCE_DATE_EPOCH < <(bash "${PRODUCERS_SH}" --version-for "${PRODUCER}") && [ -n "${SOURCE_DATE_EPOCH:-}" ] || {
+    echo "error: tools/deb/producers.sh --version-for ${PRODUCER} named no version (see its message above)" >&2
     exit 1
 }
 
-# VERSION_FROM=<env file>:<KEY> replaces the version prefix with an upstream tag
-# (leading `v` stripped); the shared +git<commit> stamp is kept.
-if [ -n "${VERSION_FROM}" ]; then
-    VF_PATH="${VERSION_FROM%%:*}"
-    VF_KEY="${VERSION_FROM##*:}"
-    if [ -z "${VF_PATH}" ] || [ -z "${VF_KEY}" ] || [ "${VF_PATH}" = "${VERSION_FROM}" ]; then
-        echo "error: ${PRODUCER_REL}/producer.env declares VERSION_FROM='${VERSION_FROM}', which is not <repository-relative env file>:<KEY>. That pair is the whole wiring between the producer and the upstream version it packages; see tools/deb/README.md" >&2
-        exit 1
-    fi
-    [ -f "${REPO_ROOT}/${VF_PATH}" ] || {
-        echo "error: ${PRODUCER_REL}/producer.env declares VERSION_FROM=${VERSION_FROM} and ${VF_PATH} does not exist under ${REPO_ROOT}. The upstream version comes from that file or from nowhere; a fallback here would stamp a number the tree does not declare" >&2
-        exit 1
-    }
-    UPSTREAM="$(sed -n "s/^${VF_KEY}=//p" "${REPO_ROOT}/${VF_PATH}" | head -n1)"
-    [ -n "${UPSTREAM}" ] || {
-        echo "error: ${VF_PATH} declares no non-empty ${VF_KEY}, which ${PRODUCER_REL}/producer.env names in VERSION_FROM. An empty upstream version would compose into '+git<commit>-1', which dpkg accepts and which orders below every real version" >&2
-        exit 1
-    }
-    UPSTREAM="${UPSTREAM#v}"
-    case "${UPSTREAM}" in
-    [0-9]*) ;;
-    *)
-        echo "error: ${VF_PATH}'s ${VF_KEY} is '${UPSTREAM}' after stripping a leading 'v', which does not begin with a digit. A Debian upstream version starts with a digit; anything else here is a tag this rule was never written for, and guessing an interpretation would stamp it silently" >&2
-        exit 1
-        ;;
-    esac
-    VERSION="${UPSTREAM}+${VERSION#*+}"
-fi
-
-# HEAD's timestamp, resolved on the host (git does not work through the bind
-# mount); a dirty tree keeps it too.
-git -C "${REPO_ROOT}" rev-parse --git-dir >/dev/null 2>&1 || {
-    echo "error: ${REPO_ROOT} is not a git checkout. SOURCE_DATE_EPOCH is HEAD's timestamp and has no defensible value here without git; a fallback would make every archive irreproducible while every build stayed green" >&2
-    exit 1
-}
-SOURCE_DATE_EPOCH="$(git -C "${REPO_ROOT}" log -1 --format=%ct)"
-[ -n "${SOURCE_DATE_EPOCH}" ] || {
-    echo "error: \`git log -1 --format=%ct\` produced no commit timestamp in ${REPO_ROOT}" >&2
-    exit 1
-}
-
-# Provenance for pack.sh: HEAD, and the origin basename unless MICA_SOURCE_REPO is set.
-SOURCE_COMMIT="$(git -C "${REPO_ROOT}" rev-parse HEAD)"
-[[ "${SOURCE_COMMIT}" =~ ^[0-9a-f]{40}$ ]] || {
-    echo "error: \`git rev-parse HEAD\` in ${REPO_ROOT} did not name a commit; the archive's Mica-Source-Commit would be empty" >&2
-    exit 1
-}
-# A recorded identity (tools/deb/reuse.sh): rebuild at the current tree as the
-# archive a previous release published -- its Version, its Mica-Source-Commit
-# and the SOURCE_DATE_EPOCH its members carry -- to prove that archive is what
-# this tree's unchanged inputs produce. Only the reuse check sets it.
-if [ -n "${MICA_DEB_IDENTITY:-}" ]; then
-    read -r id_version id_commit id_epoch <<<"${MICA_DEB_IDENTITY}"
-    [ -n "${id_version}" ] && [[ "${id_commit}" =~ ^[0-9a-f]{40}$ ]] && [[ "${id_epoch}" =~ ^[0-9]+$ ]] || {
-        echo "error: MICA_DEB_IDENTITY='${MICA_DEB_IDENTITY}' is not '<version> <40-hex commit> <epoch seconds>'" >&2
-        exit 1
-    }
-    VERSION="${id_version}" SOURCE_COMMIT="${id_commit}" SOURCE_DATE_EPOCH="${id_epoch}"
-    echo "note: building as the recorded identity ${VERSION} ${SOURCE_COMMIT:0:12} @${SOURCE_DATE_EPOCH}"
-fi
+# Provenance for pack.sh: the origin basename unless MICA_SOURCE_REPO is set.
 if [ -n "${MICA_SOURCE_REPO:-}" ]; then
     SOURCE_REPO="${MICA_SOURCE_REPO}"
 else
@@ -334,7 +276,6 @@ ARG_ARGS=(
     --build-arg "MICA_DEB_ARCH=${DEB_ARCH}"
     --build-arg "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
     --build-arg "MICA_DEB_SOURCE_REPO=${SOURCE_REPO}"
-    --build-arg "MICA_DEB_SOURCE_COMMIT=${SOURCE_COMMIT}"
     --build-arg "MICA_DEB_INSTANCE=${INSTANCE}"
 )
 for entry in ${BUILD_ARGS}; do
@@ -360,7 +301,7 @@ for pool_arch in "${POOL_ARCHES[@]}"; do
     OUT_ARGS+=(-o "type=local,dest=${pool}")
 done
 
-echo "build.sh: packing ${PACKAGES} ${VERSION} as ${DEB_ARCH} from ${SOURCE_REPO}@${SOURCE_COMMIT:0:12} on builder '${BUILDER}' (${BUILDER_DRIVER}) into ${POOL_ARCHES[*]}"
+echo "build.sh: packing ${PACKAGES} ${VERSION} as ${DEB_ARCH} from ${SOURCE_REPO} at SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH} on builder '${BUILDER}' (${BUILDER_DRIVER}) into ${POOL_ARCHES[*]}"
 docker buildx build --builder "${BUILDER}" \
     --platform "linux/${BUILD_PLATFORM}" \
     "${FROM_ARGS[@]}" \

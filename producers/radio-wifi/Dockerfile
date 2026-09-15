@@ -42,7 +42,6 @@ ARG MICA_DEB_ARCH
 ARG SOURCE_DATE_EPOCH
 # Provenance, written into the control file by pack.sh; see tools/deb/README.md.
 ARG MICA_DEB_SOURCE_REPO
-ARG MICA_DEB_SOURCE_COMMIT
 
 # mica-wifi ALSO carries the regulatory-database reload, and the unit body says
 # at length why it has to exist. In short: cfg80211 is built into every board

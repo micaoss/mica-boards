@@ -14,6 +14,16 @@
 #   bash tools/deb/producers.sh --control-for <producer>
 #   -> boards/cx3576/package/control   (CONTROL_DIR of the producer.env, else <dir>/control)
 #
+#   bash tools/deb/producers.sh --version-for <producer>
+#   -> 0.1.0-1 1789430400              (the declared VERSION and SOURCE_DATE_EPOCH)
+#
+# A producer declares its packages' version in version.env beside its control
+# templates (the control directory's parent: <dir>/version.env, or
+# boards/<board>/package/version.env for the board producer), exactly two lines
+# VERSION=<upstream>-<revision> and SOURCE_DATE_EPOCH=<seconds>, bumped together.
+# The version carries no commit, date, release or .dirty stamp and no epoch
+# (docs: mica:docs/decisions/2026-09-15-package-versions.md).
+#
 # Five space-separated fields, sorted by producer name:
 #
 #   <producer>    the producer directory's basename, and what `make pool (producer <x>`
@@ -39,6 +49,7 @@ REPO_ROOT="$(cd "${HERE}/../.." && pwd)"
 DIR_FOR=""
 INSTANCE_FOR=""
 CONTROL_FOR=""
+VERSION_FOR=""
 while [ "$#" -gt 0 ]; do
     case "$1" in
     --dir-for)
@@ -51,13 +62,18 @@ while [ "$#" -gt 0 ]; do
         [ -n "${INSTANCE_FOR}" ] || { echo "error: --instance-for takes a producer name" >&2; exit 1; }
         shift 2
         ;;
+    --version-for)
+        VERSION_FOR="${2-}"
+        [ -n "${VERSION_FOR}" ] || { echo "error: --version-for takes a producer name" >&2; exit 1; }
+        shift 2
+        ;;
     --control-for)
         CONTROL_FOR="${2-}"
         [ -n "${CONTROL_FOR}" ] || { echo "error: --control-for takes a producer name" >&2; exit 1; }
         shift 2
         ;;
     *)
-        echo "usage: bash tools/deb/producers.sh [--dir-for <producer> | --instance-for <producer> | --control-for <producer>]" >&2
+        echo "usage: bash tools/deb/producers.sh [--dir-for <producer> | --instance-for <producer> | --control-for <producer> | --version-for <producer>]" >&2
         exit 1
         ;;
     esac
@@ -183,6 +199,21 @@ done
 
 mapfile -t ROWS < <(printf '%s\n' "${ROWS[@]}" | LC_ALL=C sort)
 
+if [ -n "${VERSION_FOR}" ]; then
+    [ -n "${SEEN[${VERSION_FOR}]:-}" ] || { echo "error: '${VERSION_FOR}' is not a producer this repository defines. Discovered: $(printf '%s\n' "${ROWS[@]}" | cut -d' ' -f1 | tr '\n' ' ')" >&2; exit 1; }
+    vf="$(dirname "${CONTROL_OF[${VERSION_FOR}]}")/version.env"
+    [ -f "${REPO_ROOT}/${vf}" ] || { echo "error: ${vf} does not exist. The producer '${VERSION_FOR}' declares its packages' version there: VERSION=<upstream>-<revision> and SOURCE_DATE_EPOCH=<seconds>" >&2; exit 1; }
+    [ "$(grep -v -e '^#' -e '^$' "${REPO_ROOT}/${vf}" | sed 's/=.*//' | LC_ALL=C sort | tr '\n' ' ')" = "SOURCE_DATE_EPOCH VERSION " ] ||
+        { echo "error: ${vf} must declare exactly VERSION and SOURCE_DATE_EPOCH, once each, as plain KEY=value lines" >&2; exit 1; }
+    v="$(sed -n 's/^VERSION=//p' "${REPO_ROOT}/${vf}")"
+    e="$(sed -n 's/^SOURCE_DATE_EPOCH=//p' "${REPO_ROOT}/${vf}")"
+    [[ "${v}" =~ ^[0-9][A-Za-z0-9.+~]*-[A-Za-z0-9.+~]+$ ]] ||
+        { echo "error: ${vf} declares VERSION=${v}, which is not a Debian <upstream>-<revision> version without an epoch" >&2; exit 1; }
+    case "${v}" in *+git* | *.dirty*) echo "error: ${vf} declares VERSION=${v}; a package version carries no commit or .dirty stamp" >&2; exit 1 ;; esac
+    [[ "${e}" =~ ^[1-9][0-9]*$ ]] || { echo "error: ${vf} declares SOURCE_DATE_EPOCH=${e}, which is not whole seconds since the epoch" >&2; exit 1; }
+    printf '%s %s\n' "${v}" "${e}"
+    exit 0
+fi
 if [ -n "${CONTROL_FOR}" ]; then
     [ -n "${SEEN[${CONTROL_FOR}]:-}" ] || { echo "error: '${CONTROL_FOR}' is not a producer this repository defines. Discovered: $(printf '%s\n' "${ROWS[@]}" | cut -d' ' -f1 | tr '\n' ' ')" >&2; exit 1; }
     printf '%s\n' "${CONTROL_OF[${CONTROL_FOR}]}"

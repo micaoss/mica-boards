@@ -127,21 +127,20 @@ docker run --rm \
         {
             echo "# The local package pool for ${MICA_DEB_ARCH}, read out of the archives by tools/deb/repo.sh."
             echo "# Regenerated whenever the pool changes; never edited by hand."
-            printf "#package\tversion\tarchitecture\tinstalled-size\tsha256\tfile\tsource-repo\tsource-commit\n"
+            printf "#package\tversion\tarchitecture\tinstalled-size\tsha256\tfile\tsource-repo\n"
             for d in "${debs[@]}"; do
                 repo="$(dpkg-deb --field "pool/${d}" Mica-Source-Repo)"
-                commit="$(dpkg-deb --field "pool/${d}" Mica-Source-Commit)"
-                [ -n "${repo}" ] && [ -n "${commit}" ] || {
-                    echo "error: pool/${d} carries no Mica-Source-Repo/Mica-Source-Commit control fields. tools/deb/pack.sh writes both into every archive; one without them was packed by something else" >&2
+                [ -n "${repo}" ] || {
+                    echo "error: pool/${d} carries no Mica-Source-Repo control field. tools/deb/pack.sh writes it into every archive; one without it was packed by something else" >&2
                     exit 1
                 }
-                printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+                printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
                     "$(dpkg-deb --field "pool/${d}" Package)" \
                     "$(dpkg-deb --field "pool/${d}" Version)" \
                     "$(dpkg-deb --field "pool/${d}" Architecture)" \
                     "$(dpkg-deb --field "pool/${d}" Installed-Size)" \
                     "$(sha256sum "pool/${d}" | cut -d" " -f1)" \
-                    "pool/${d}" "${repo}" "${commit}"
+                    "pool/${d}" "${repo}"
             done
         } >manifest.txt
 

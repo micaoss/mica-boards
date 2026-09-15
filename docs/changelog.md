@@ -2,6 +2,25 @@
 
 ## 2026-09-15 [progress]
 
+Package versions (user decision, mica `docs/decisions/2026-09-15-package-versions.md`):
+a package is locked by its declared version and a release never changes it. Each
+producer declares `VERSION` and `SOURCE_DATE_EPOCH` in `version.env` beside its
+control templates (`boards/<board>/package/version.env` for the board producer);
+every producer starts at `0.1.0-1`, epoch 1789430400. The root `VERSION`,
+`tools/deb/version.sh`, `VERSION_FROM` and the `Mica-Source-Commit` field are gone.
+`tools/deb/package-inputs.sh` no longer hashes build-env images and takes a hook's
+inputs from `PREPARE_INPUTS`; `tools/deb/version-guard.sh`, run in `build.yml`'s pool
+job for every board in CI and for the release's board, refuses changed inputs
+without a bump, a lower version and an unchanged version whose bytes moved. Pool
+manifests carry only `mica.source-repo` and `mica.arch` (layers: title,
+`mica.inputs`), so an unchanged pool keeps its digest. The package gate checks each
+archive against its declared version instead of one git stamp. This replaces the
+identity-rebuild reuse of the entry below (`tools/deb/reuse.sh`,
+`tests/package-reuse-test.sh` removed); `tests/version-guard-test.sh` (`make
+version-guard-test`) covers it.
+
+## 2026-09-15 [progress]
+
 Package reuse by inputs (user decision): a board release keeps an unchanged
 package at its published version and bytes instead of re-versioning it. Each pool
 layer carries its producer's inputs hash as `mica.inputs`

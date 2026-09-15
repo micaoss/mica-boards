@@ -1,22 +1,26 @@
 #!/usr/bin/env bash
 # The inputs hash of a producer at one architecture: sha256 over a sorted
-# manifest of everything that determines its archives' bytes, apart from the
-# identity every build stamps (version, source commit, SOURCE_DATE_EPOCH). A
-# board release reuses a published archive whose pool layer carries this hash as
-# mica.inputs (tools/deb/reuse.sh), and records it on every layer it publishes.
+# manifest of everything in this repository that determines its archives'
+# bytes. It is a guard, not a reuse key: a pool layer records it as
+# mica.inputs (tools/deb/publish.sh), and tools/deb/version-guard.sh refuses an
+# archive whose version is published with other inputs -- a change that forgot
+# its version bump (mica:docs/decisions/2026-09-15-package-versions.md R4).
 #
 #   bash tools/deb/package-inputs.sh <producer> <amd64|arm64|all>             the hash
 #   bash tools/deb/package-inputs.sh --manifest <producer> <amd64|arm64|all>  the manifest it is taken over
 #
 # The manifest, as `<kind> <name> <value>` lines:
-#   file      producer.env, the FOR_EACH instance file, the producer directory's tracked files, tools/deb/,
-#             VERSION, and each BUILD_CONTEXTS entry: the paths its Dockerfile COPYs from that context, or
-#             the whole context when the producer has a PREPARE hook (which may read anything in it)
-#   hook      for a PREPARE hook that runs `make -C <dir> <target>`, that directory's tracked files, common/,
-#             and locks/upstream.lock
-#   pin       the build-env image rows it packs in (base, and FROM_IMAGES)
+#   producer  the producer's name without its instance
 #   arch      the architecture it is built at
-# Deliberately wide: a missed input would reuse a stale archive, an extra one only rebuilds.
+#   version   the declared VERSION and SOURCE_DATE_EPOCH (version.env)
+#   file      the producer directory's tracked files, the FOR_EACH instance file, the control templates
+#             and version.env, the packaging tooling that shapes the bytes (tools/deb/build.sh, pack.sh,
+#             producers.sh), the paths its Dockerfile COPYs from each BUILD_CONTEXTS entry, and the
+#             paths a PREPARE hook declares in PREPARE_INPUTS
+#   image     an upstream image a PREPARE hook declares (PREPARE_INPUTS image:<name>) or FROM_IMAGES
+#             names, by its reference in locks/mica-build-env.lock
+# Build-env image digests are not inputs: a toolchain move that changes bytes is
+# caught where an unchanged version must rebuild byte-identically.
 set -euo pipefail
 export LC_ALL=C
 
@@ -32,22 +36,30 @@ case "${ARCH}" in amd64 | arm64 | all) ;; *) die "'${ARCH}' is not amd64, arm64 
 cd "${REPO_ROOT}"
 DIR="$(bash tools/deb/producers.sh --dir-for "${PRODUCER}")" || die "no producer ${PRODUCER}"
 INSTANCE="$(bash tools/deb/producers.sh --instance-for "${PRODUCER}")"
+CONTROL="$(bash tools/deb/producers.sh --control-for "${PRODUCER}")"
+DECLARED="$(bash tools/deb/producers.sh --version-for "${PRODUCER}")" || exit 1
 vals="$(
-    BUILD_CONTEXTS="" FROM_IMAGES="" PREPARE=""
+    BUILD_CONTEXTS="" FROM_IMAGES="" PREPARE="" PREPARE_INPUTS=""
     # shellcheck disable=SC1090
     [ -z "${INSTANCE}" ] || . "./${INSTANCE}"
     # shellcheck disable=SC1090
     . "./${DIR}/producer.env"
-    printf 'C=%s\nF=%s\nP=%s\n' "${BUILD_CONTEXTS}" "${FROM_IMAGES}" "${PREPARE}"
+    printf 'C=%s\nF=%s\nP=%s\nI=%s\n' "${BUILD_CONTEXTS}" "${FROM_IMAGES}" "${PREPARE}" "${PREPARE_INPUTS}"
 )"
 CONTEXTS="$(sed -n 's/^C=//p' <<<"${vals}")"
 FROM_IMAGES="$(sed -n 's/^F=//p' <<<"${vals}")"
 PREPARE="$(sed -n 's/^P=//p' <<<"${vals}")"
+PREPARE_INPUTS="$(sed -n 's/^I=//p' <<<"${vals}")"
+[ -z "${PREPARE}" ] || [ -n "${PREPARE_INPUTS}" ] ||
+    die "${DIR}/producer.env names PREPARE=${PREPARE} and no PREPARE_INPUTS: the paths and image:<name> upstream images the hook builds from"
 
-files() { # <path>...: tracked files and their sha256
-    git ls-files -z -- "$@" | while IFS= read -r -d '' f; do
+files() { # <path>...: tracked files and their sha256; a symlink by its target
+    local listed
+    listed="$(git ls-files -- "$@")"
+    [ -n "${listed}" ] || die "no tracked file under $*"
+    while IFS= read -r f; do
         if [ -L "${f}" ]; then printf 'link %s %s\n' "${f}" "$(readlink "${f}")"; else printf 'file %s %s\n' "${f}" "$(sha256sum "${f}" | cut -d' ' -f1)"; fi
-    done
+    done <<<"${listed}"
 }
 # The sources a Dockerfile COPYs from the named context <name>: `COPY --from=<name> <src>... <dest>`.
 copied_from() { # <dockerfile> <name>
@@ -62,29 +74,28 @@ copied_from() { # <dockerfile> <name>
 }
 
 {
-    printf 'producer %s\n' "${PRODUCER#*@}"
+    printf 'producer %s\n' "${PRODUCER%@*}"
     printf 'arch %s\n' "${ARCH}"
-    files "${DIR}" tools/deb VERSION
+    printf 'version %s\n' "${DECLARED}"
+    files "${DIR}" "${CONTROL}" "$(dirname "${CONTROL}")/version.env" tools/deb/build.sh tools/deb/pack.sh tools/deb/producers.sh
     [ -z "${INSTANCE}" ] || files "${INSTANCE}"
     for entry in ${CONTEXTS}; do
         name="${entry%%=*}" path="${entry#*=}"
-        case "${name}" in packer | bin) continue ;; esac
-        if [ -n "${PREPARE}" ]; then
-            files "${path}"
-        else
-            mapfile -t srcs < <(copied_from "${DIR}/Dockerfile" "${name}")
-            if [ "${#srcs[@]}" -eq 0 ]; then files "${path}"; else files "${srcs[@]/#/${path}/}"; fi
-        fi
+        mapfile -t srcs < <(copied_from "${DIR}/Dockerfile" "${name}")
+        [ "${#srcs[@]}" -gt 0 ] || continue
+        files "${srcs[@]/#/${path}/}"
     done
-    if [ -n "${PREPARE}" ]; then
-        # A hook that builds with `make -C <dir>` reads that directory, common/ and the upstream pins.
-        sed -n 's|.*make -C "\$MICA_DEB_REPO_ROOT/\([^"]*\)".*|\1|p' "${DIR}/${PREPARE}" | sort -u | while IFS= read -r d; do
-            files "${d}" common | sed 's/^file /hook /'
-            printf 'hook locks/upstream.lock %s\n' "$(sha256sum locks/upstream.lock | cut -d' ' -f1)"
-        done
-    fi
-    printf 'pin mica-build-env:base %s\n' "$(bash tools/from.sh --ref base)"
-    for entry in ${FROM_IMAGES}; do printf 'pin %s %s\n' "${entry#*=}" "$(bash tools/from.sh "X=${entry#*=}" | tail -n1)"; done
+    for entry in ${PREPARE_INPUTS}; do
+        case "${entry}" in
+        image:*) printf 'image %s %s\n' "${entry#image:}" "$(bash tools/from.sh --upstream "${entry#image:}")" ;;
+        *) files "${entry}" ;;
+        esac
+    done
+    for entry in ${FROM_IMAGES}; do
+        case "${entry#*=}" in
+        upstream:*) printf 'image %s %s\n' "${entry#*=upstream:}" "$(bash tools/from.sh --upstream "${entry#*=upstream:}")" ;;
+        esac
+    done
 } | sort -u >"${TMPDIR:-/tmp}/package-inputs.$$"
 trap 'rm -f "${TMPDIR:-/tmp}/package-inputs.$$"' EXIT
 if [ "${MODE}" = manifest ]; then cat "${TMPDIR:-/tmp}/package-inputs.$$"; else sha256sum <"${TMPDIR:-/tmp}/package-inputs.$$" | cut -d' ' -f1; fi
