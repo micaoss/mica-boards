@@ -2,6 +2,20 @@
 
 ## 2026-09-15 [progress]
 
+CI reuses kernel and U-Boot components (user decision on the kernel speed report,
+proposal 2): the plan no longer builds a kernel or uboot component whose inputs
+hash equals the one the board's latest published release carries
+(`tools/reuse.sh`); that release is the proof the component builds. A push or
+pull request that changes a file the component jobs run but the inputs hash does
+not cover (`BUILD_FILES` in `build.yml`: the workflows, the root `Makefile`, the
+lock, pin and output tools, `tools/inputs.sh`, `tools/reuse.sh`) builds every
+component without moving any component's inputs; so does a run with no base
+commit (a manual run) and a push whose previous head is not an ancestor of the new
+one (a force-push). A multi-commit push is compared from its previous head, so
+every commit in it counts.
+
+## 2026-09-15 [progress]
+
 The GitHub release listing of `tools/reuse.sh` and `tools/deb/version-guard.sh`
 sends the workflow's `GITHUB_TOKEN` when one is handed in: anonymous API calls
 from the shared runner addresses were refused with 403 in CI. The locks and
