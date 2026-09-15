@@ -55,7 +55,12 @@ DOWNLOAD="${MICA_RELEASE_DOWNLOAD:-https://github.com/${SLUG}/releases/download}
 WORK="$(mktemp -d)"
 trap 'rm -rf "${WORK}"' EXIT
 
-curl -fsSL "${LIST_URL}" -o "${WORK}/releases.json" || die "listing the releases of ${SLUG} failed"
+# The listing is release metadata from the GitHub API, whose anonymous rate limit
+# is shared by every job on a runner's address: GITHUB_TOKEN, when the workflow
+# hands it in, only raises that limit. The locks and artifacts are read anonymously.
+auth=()
+case "${LIST_URL}" in https://api.github.com/*) [ -z "${GITHUB_TOKEN:-}" ] || auth=(-H "Authorization: Bearer ${GITHUB_TOKEN}") ;; esac
+curl -fsSL "${auth[@]}" "${LIST_URL}" -o "${WORK}/releases.json" || die "listing the releases of ${SLUG} failed"
 previous="$(jq -r --arg b "${BOARD}/" --arg skip "${RELEASE}" '[.[] | select(.draft == false and (.tag_name | startswith($b)) and .tag_name != $skip
     and ([.assets[].name] | index("mica-boards.lock")))] | map(.tag_name) | sort | last // empty' "${WORK}/releases.json")"
 [ -n "${previous}" ] || { echo "version-guard.sh: ${BOARD} has no published release; every archive is built"; exit 0; }

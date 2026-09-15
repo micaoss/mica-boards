@@ -92,6 +92,7 @@ jobs:
         env:
           BOARD: ${{ inputs.board }}
           RELEASE: ${{ inputs.release }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           bash tools/boards.sh check
@@ -307,6 +308,7 @@ jobs:
         env:
           BOARD: ${{ inputs.board }}
           RELEASE: ${{ inputs.release }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           boards="${BOARD}"

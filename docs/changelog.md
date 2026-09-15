@@ -2,6 +2,13 @@
 
 ## 2026-09-15 [progress]
 
+The GitHub release listing of `tools/reuse.sh` and `tools/deb/version-guard.sh`
+sends the workflow's `GITHUB_TOKEN` when one is handed in: anonymous API calls
+from the shared runner addresses were refused with 403 in CI. The locks and
+artifacts are still read anonymously.
+
+## 2026-09-15 [progress]
+
 virt-arm64 kernel trimmed to mica-build's QEMU virt guest (its evaluation of
 the speed report, 2026-09-15): the board fragment switches off at their menus the
 physical platforms, SoC buses and peripherals, USB, radios, wired Ethernet
