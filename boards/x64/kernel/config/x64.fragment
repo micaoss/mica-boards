@@ -207,3 +207,5 @@ CONFIG_WATCHDOG=y
 CONFIG_WATCHDOG_NOWAYOUT=y
 CONFIG_WATCHDOG_SYSFS=y
 CONFIG_I6300ESB_WDT=y
+
+# CI demonstration: an x64 kernel input change on a pull request; not for main.
