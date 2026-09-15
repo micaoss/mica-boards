@@ -16,7 +16,7 @@
 校验：
 
 ```sh
-shasum -a 256 -c uboot/MiniLoaderAll.bin.sha256
+shasum -a 256 -c loader/MiniLoaderAll.bin.sha256
 ```
 
 Maskrom 整盘恢复：

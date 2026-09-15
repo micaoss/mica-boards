@@ -25,7 +25,8 @@ pkg-config --exists libusb-1.0 || {
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 host_arch=$(uname -m)
-output_dir="$repo_root/tools"
+# Where the board Makefile looks for a local build (TOOLS_DIR).
+output_dir="$repo_root/flash/tools"
 output_file="$output_dir/rkdeveloptool"
 build_dir=$(mktemp -d /tmp/rkdeveloptool-macos.XXXXXX)
 trap 'rm -rf "$build_dir"' EXIT HUP INT TERM

@@ -2,6 +2,19 @@
 
 ## 2026-09-15 [progress]
 
+cx3576 flashing, three fixes found while writing the product documentation's
+flashing guide: `loader/MiniLoaderAll.bin.sha256` named `uboot/MiniLoaderAll.bin`,
+so `make flash-maskrom` failed at its checksum step before reaching
+`rkdeveloptool db`; `flash/rkdeveloptool/build-macos.sh` installed the built
+binary in `boards/cx3576/tools/` while the Makefile looks in
+`boards/cx3576/flash/tools/` (now the build's output, and git-ignored); and
+`BUILD.md` and `flash/rkdeveloptool/README.md` still named `make flash` and
+`make flash-rootfs-offline`, targets this board no longer has. The flashing
+section now describes the two targets it has, the image they take and the
+geometry preflight.
+
+## 2026-09-15 [progress]
+
 CI reuses kernel and U-Boot components (user decision on the kernel speed report,
 proposal 2): the plan no longer builds a kernel or uboot component whose inputs
 hash equals the one the board's latest published release carries

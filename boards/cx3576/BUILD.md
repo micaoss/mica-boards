@@ -40,27 +40,24 @@ overridable with `BSP_OUT`.
 
 ## Flashing
 
-Six ways onto the board, and which one applies is decided by the state the
-board is already in and by which image is being written, not by preference.
+Four ways onto the board, and which one applies is decided by the state the
+board is already in, not by preference.
 
 | Method | Use when | Command | Writes |
 |---|---|---|---|
-| **Loader** | U-Boot boots and its rockusb gadget enumerates | `make flash` | the whole disk |
-| **Loader, Mica OS image** | the same, and what is being written is the product image | `make flash-mica` | the whole disk |
+| **Loader** | U-Boot boots and its rockusb gadget enumerates | `make flash-mica` | the whole disk |
 | **Maskrom** | U-Boot is absent or broken, board enumerates as Maskrom | `make flash-maskrom` | the whole disk, after pushing the pinned vendor loader |
-| **rootfs only** | kernel and partition layout unchanged | `make flash-rootfs-offline` | `_out/rootfs/rootfs.img` at sector 163840 |
 | **`ums`** | you are at the U-Boot console | `ums 0 mmc 0`, then `dd` from the host | whatever the host writes |
 | **raw `dd`** | the eMMC or SD is reachable directly | `dd` to the block device | whatever you write |
 
-**Which image.** `make flash` and `make flash-maskrom` write
-`_out/disk.img`, the Alpine demo image this directory builds.
-`make flash-mica` writes `_out/cx3576/cx3576-mica-latest.img`, the A/B product
-image `make os-image-cx3576` builds at the top level; `MICA_IMAGE=<file>`
-selects another build. That target is here rather than at the top level
-because this Makefile is the only place in the tree that knows how to talk to
-the board.
+**Which image.** Both make targets write the product image the assembly built:
+`MICA_IMAGE` defaults to the newest `_out/image/mica-cx3576-*.img` of this
+checkout and names another build otherwise. The raw `.img` is what they take; a
+compressed one is rejected by the preflight below. These targets are here rather
+than at the top level because this Makefile is the only place in the tree that
+knows how to talk to the board.
 
-All three write with `rkdeveloptool wl 0`, then read the **whole** image back
+Both write with `rkdeveloptool wl 0`, then read the **whole** image back
 off the board and compare it byte for byte against the file they wrote
 (`scripts/verify-flash.sh`), and only then issue `rd` to reboot. A difference
 stops the run before the reset, with the board still in loader mode. The boot
@@ -69,10 +66,7 @@ there is the one failure that bricks the board past the recovery key.
 **Keep power and USB connected until `rd` returns** — every flash target says
 so, because a board interrupted mid-write comes back in Maskrom.
 
-`make flash-rootfs-offline` is the exception: it writes one partition at a
-fixed sector and reads nothing back.
-
-`make flash-maskrom` is the recovery path: it checks `uboot/MiniLoaderAll.bin`
+`make flash-maskrom` is the recovery path: it checks `loader/MiniLoaderAll.bin`
 against its committed sha256, pushes it with `rkdeveloptool db`, and then
 flashes exactly as above. The loader is pinned rather than rebuilt, so recovery
 does not depend on the build that broke.
@@ -84,9 +78,14 @@ enter before U-Boot is running. `CONFIG_CMD_USB_MASS_STORAGE=y` is set in
 
 **There is no `update.img`, deliberately.** The RK packaging format would need
 `afptool` and `rkImageMaker`, which are closed-source SDK binaries this tree
-would have to vendor, and it buys nothing: `_out/disk.img` is a whole-disk image
+would have to vendor, and it buys nothing: the product image is a whole-disk image
 carrying every partition, and `rkdeveloptool wl 0` writes it in one step from
 both Loader and Maskrom.
+
+Before the write and again before the readback, `flash/scripts/verify-flash.sh
+--check` holds the image to the board's geometry: exactly 1299 MiB, both GPTs
+with their checksums, the three partitions at their recorded sectors, and the
+`RKNS` loader magic at byte 32768.
 
 Upstream provenance and the deliberate deviations from it are recorded in
 `docs/boards/cx3576-bsp-sync.md`.
