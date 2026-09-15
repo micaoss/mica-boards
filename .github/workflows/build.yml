@@ -4,9 +4,13 @@ name: build
 # only). Nothing here publishes. The boards, their architectures and their
 # components come from boards/boards.tsv and tools/component.sh.
 #
-#   plan        the boards, and for a board release the components it must build: a component whose
-#               inputs hash (tools/inputs.sh) equals the same component of the board's latest
-#               release is reused by the publisher and not built here (tools/reuse.sh)
+#   plan        the boards, and the components this run must build: a kernel or uboot component whose
+#               inputs hash (tools/inputs.sh) equals the same component of the board's latest published
+#               release is not built -- a release reuses it by digest (tools/reuse.sh), CI takes that
+#               release as the proof it builds. A push or pull request that changes a file the component
+#               jobs run and the inputs hash does not cover (BUILD_FILES in the plan) builds every
+#               component, as does a run with no base to compare (a manual run, a new branch) and a
+#               push whose previous head is not an ancestor (a force-push)
 #   kernel      one job per board, native on the board's architecture (ubuntu-24.04 for amd64,
 #               ubuntu-24.04-arm for arm64): the kernel component
 #   uboot       one job per FIT board, on ubuntu-24.04: cross-compiled on x86-64 because the uboot
@@ -75,6 +79,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
+          # The whole history: a push or pull request is compared with its base.
+          fetch-depth: 0
       - name: The public trust certificates, which the inputs hashes cover
         env:
           VERITY: ${{ vars.MICA_VERITY_TRUST_CERT }}
@@ -93,15 +99,41 @@ jobs:
           BOARD: ${{ inputs.board }}
           RELEASE: ${{ inputs.release }}
           GITHUB_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           bash tools/boards.sh check
           if [ -n "${BOARD}" ]; then boards="${BOARD}"; bash tools/boards.sh arch "${BOARD}" >/dev/null; else boards="$(bash tools/boards.sh list | tr '\n' ' ')"; fi
           runner() { case "$1" in amd64) echo ubuntu-24.04 ;; arm64) echo ubuntu-24.04-arm ;; esac; }
-          # build <board> <component>: true unless a board release can reuse the published component.
+          # The files the kernel and uboot jobs run that tools/inputs.sh does not hash (the component
+          # Makefiles, Dockerfiles, common/{kernel,uboot,scripts,trust} and the pins are hashed): a change
+          # to one must be proven by a build, not by the release that predates it. Kept out of the
+          # inputs hash so that a workflow-only edit moves no component digest.
+          BUILD_FILES=".github/workflows/build.yml .github/workflows/ci.yml Makefile tools/locks.sh tools/check-lock.sh tools/from.sh tools/upstream.sh tools/apt-snapshot.sh tools/ci-outputs.sh tools/inputs.sh tools/reuse.sh"
+          all=""
+          if [ -z "${RELEASE}" ]; then
+              case "${EVENT}" in
+              pull_request) base="${PR_BASE}" ;;
+              push) base="${PUSH_BEFORE}" ;;
+              *) base="" ;;
+              esac
+              # A multi-commit push compares its previous head with the new one, so every commit of
+              # it counts; a pull request compares its base with the merge commit.
+              if [ -z "${base}" ] || [ -z "${base//0/}" ]; then all="no base commit to compare (${EVENT})"
+              elif ! git cat-file -e "${base}^{commit}" 2>/dev/null || ! git merge-base --is-ancestor "${base}" HEAD; then all="${base} is not an ancestor of HEAD (a force-push)"
+              else
+                  # shellcheck disable=SC2086
+                  changed="$(git diff --name-only "${base}" HEAD -- ${BUILD_FILES} | tr '\n' ' ')"
+                  [ -z "${changed}" ] || all="the component jobs' own files changed since ${base:0:12}: ${changed}"
+              fi
+          fi
+          [ -z "${all}" ] || echo "every kernel and uboot component is built: ${all}"
+          # build <board> <component>: true unless the board's latest release publishes it with these inputs.
           build() {
-              [ -n "${RELEASE}" ] || return 0
-              [ -z "$(bash tools/reuse.sh "$1" "$2" "$(bash tools/inputs.sh "$1" "$2")" "${RELEASE}")" ]
+              [ -z "${all}" ] || return 0
+              [ -z "$(bash tools/reuse.sh "$1" "$2" "$(bash tools/inputs.sh "$1" "$2")" ${RELEASE:+"${RELEASE}"})" ]
           }
           kernels="" uboots=""
           for b in ${boards}; do
