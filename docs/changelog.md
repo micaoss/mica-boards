@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-16 [progress]
+
+Every producer's revision is bumped (epoch 1789516800): the pipe-hygiene commit
+edited `tools/deb/producers.sh`, which the package inputs hash covers as packaging
+tooling, so the version guard refused the unchanged versions in CI -- the guard
+working as designed. `mica-board-*`, `mica-wifi`, `mica-wifi-ap` and
+`mica-bluetooth` are `0.1.0-2`; the s905x5m extras `mica-s905x5m-bluetooth`,
+`mica-s905x5m-wireless`, `mica-s905x5m-wifi` and `mica-bm201-front-panel` are
+`0.1.0-3`, with their literal cross-producer pins moved with them.
+
 ## 2026-09-15 [progress]
 
 Early-exiting readers on the right of a pipe, the defect class mica docs found in
