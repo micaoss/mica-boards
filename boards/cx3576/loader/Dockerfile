@@ -63,11 +63,16 @@ ARG BUILDARCH
 
 ARG RKBIN_REPO
 ARG RKBIN_COMMIT
-RUN bash /bsp/scripts/fetch-source.sh /rkbin "${RKBIN_REPO}" "${RKBIN_COMMIT}"
+ARG RKBIN_GIT_NAME
+# The fetch-time mirror, tried before the pinned URL and skipped when it does
+# not answer; not an input of this build (common/scripts/mirror.sh).
+ARG MICA_MIRROR
+RUN bash /bsp/scripts/fetch-source.sh --name "${RKBIN_GIT_NAME}" /rkbin "${RKBIN_REPO}" "${RKBIN_COMMIT}"
 
 ARG UBOOT_REPO
 ARG UBOOT_COMMIT
-RUN bash /bsp/scripts/fetch-source.sh /uboot "${UBOOT_REPO}" "${UBOOT_COMMIT}"
+ARG UBOOT_GIT_NAME
+RUN bash /bsp/scripts/fetch-source.sh --name "${UBOOT_GIT_NAME}" /uboot "${UBOOT_REPO}" "${UBOOT_COMMIT}"
 
 # ---- the third-party prefix ends here: the toolchain and the upstream source,
 # nothing of this repository's (the only stage a CI cache holds; see

@@ -34,7 +34,11 @@ ARG BUILDARCH
 
 ARG KERNEL_REPO
 ARG KERNEL_COMMIT
-RUN bash /bsp/scripts/fetch-source.sh /ksrc "${KERNEL_REPO}" "${KERNEL_COMMIT}"
+ARG KERNEL_GIT_NAME
+# The fetch-time mirror, tried before the pinned URL and skipped when it does
+# not answer; not an input of this build (common/scripts/mirror.sh).
+ARG MICA_MIRROR
+RUN bash /bsp/scripts/fetch-source.sh --name "${KERNEL_GIT_NAME}" /ksrc "${KERNEL_REPO}" "${KERNEL_COMMIT}"
 
 # ---- the third-party prefix ends here: the toolchain and the upstream source,
 # nothing of this repository's (the only stage a CI cache holds; see

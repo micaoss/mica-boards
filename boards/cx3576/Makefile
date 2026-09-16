@@ -26,6 +26,14 @@ BSP_ARG := MICA_BUILD_BSP=mica-build-env:bsp
 # message instead of reaching docker as an empty argument.
 PIN := bash ../../tools/upstream.sh
 
+# THE FETCH-TIME MIRROR. MICA_MIRROR is passed through to the builders, which
+# try mica-res's copy of a pinned object before the row's own URL and ignore it
+# when it does not answer (common/scripts/mirror.sh). It is deliberately absent
+# from tools/inputs.sh: the bytes a build gets are the same either way, and a
+# lock URL is never rewritten.
+MIRROR_ARG := $(if $(MICA_MIRROR),--build-arg MICA_MIRROR=$(MICA_MIRROR))
+
+
 # The same public certificate bundles to every builder. Kernel and U-Boot
 # builds never mint keys; the certificates come from the assembly, which
 # alone holds the private keys.
@@ -48,6 +56,7 @@ KERNEL_BUILDX = TRUST_DIR="$$(bash $(TRUST_STAGE) "$(VERITY_TRUST_CERT)" "$(BSP_
 	bash ../../common/scripts/buildx.sh $(BOARD)-kernel source --build-context common=../../common \
 	  --build-context mica-common=../../common/kernel --build-context "mica-trust=$$TRUST_DIR" \
 	  --build-arg KERNEL_REPO=$$KERNEL_REPO --build-arg KERNEL_COMMIT=$$KERNEL_COMMIT \
+	  --build-arg KERNEL_GIT_NAME=$(BOARD)-kernel $(MIRROR_ARG) \
 	  --build-arg KERNEL_EXPECT=$(KERNEL_EXPECT) --build-arg KERNEL_CONFIG=$(KERNEL_CONFIG) \
 	  --build-arg KERNEL_DTB=$(KERNEL_DTB) --build-arg KERNEL_DTB_ARTIFACT=$(KERNEL_DTB_ARTIFACT) \
 	  -f kernel/Dockerfile --target artifact $$IMG
@@ -75,6 +84,7 @@ uboot-mica:
 	  --build-context mica-common=../../common/uboot --build-context "mica-boot-trust=$$TRUST_DIR" \
 	  --build-arg UBOOT_REPO=$$UBOOT_REPO --build-arg UBOOT_COMMIT=$$UBOOT_COMMIT \
 	  --build-arg RKBIN_REPO=$$RKBIN_REPO --build-arg RKBIN_COMMIT=$$RKBIN_COMMIT \
+	  --build-arg UBOOT_GIT_NAME=$(BOARD)-uboot --build-arg RKBIN_GIT_NAME=$(BOARD)-rkbin $(MIRROR_ARG) \
 	  --build-arg DDR_BLOB=$(DDR_BLOB) --build-arg BL31_BLOB=$(BL31_BLOB) \
 	  --build-arg UBOOT_DEFCONFIG=$(UBOOT_DEFCONFIG) \
 	  -f loader/Dockerfile --target artifact-mica $$IMG \

@@ -14,19 +14,20 @@ ARG DEBIAN_FRONTEND=noninteractive
 # packages on its amd64 variant. Nothing is installed here; the three vendor
 # toolchains below are still fetched at their pinned sha256.
 
+COPY --from=bsp-scripts . /bsp/scripts/
+
 ARG UBOOT_REPO
 ARG UBOOT_COMMIT
-# git over HTTP/2 stalls in this image: the TLS handshake completes and the
-# stream opens, then the response never arrives and the fetch hangs for
-# minutes. HTTP/1.1 returns immediately against the same host, and apt (also
-# HTTP/1.1) was never affected. Pin the version rather than depend on whatever
-# the network path does with HTTP/2.
-RUN git config --global http.version HTTP/1.1 && \
-    git init -q /uboot && \
-    git -C /uboot remote add origin "${UBOOT_REPO}" && \
-    git -C /uboot fetch --depth=1 origin "${UBOOT_COMMIT}" && \
-    git -C /uboot checkout -q --detach FETCH_HEAD && \
-    test "$(git -C /uboot rev-parse HEAD)" = "${UBOOT_COMMIT}"
+ARG UBOOT_GIT_NAME
+# MICA_MIRROR: the fetch-time mirror, tried before the pinned URL by both
+# fetch-source.sh and fetch-archive.sh and skipped when it does not answer. It
+# is not an input of this build (common/scripts/mirror.sh).
+ARG MICA_MIRROR
+# --http1: git over HTTP/2 stalls in this image -- the TLS handshake completes
+# and the stream opens, then the response never arrives and the fetch hangs for
+# minutes. HTTP/1.1 returns immediately against the same host.
+RUN bash /bsp/scripts/fetch-source.sh --http1 --name "${UBOOT_GIT_NAME}" \
+    /uboot "${UBOOT_REPO}" "${UBOOT_COMMIT}"
 
 # fip/tools/zstd is a prebuilt x86-64 binary. On an arm64 builder it runs under
 # emulation, fails to find /lib64/ld-linux-x86-64.so.2, and dies with a SIGTRAP
@@ -111,8 +112,7 @@ RUN set -eu; \
     eval "riscv_subdir=\$RISCV_TOOLCHAIN_SUBDIR_${BUILDARCH}"; \
     test -n "$arm_gnu_url" || { echo "unsupported build arch: ${BUILDARCH}" >&2; exit 1; }; \
     mkdir -p /opt "$RISCV_TOOLCHAIN_DIR"; \
-    curl -L --fail --retry 3 -o /tmp/arm-toolchain.tar.xz "$arm_gnu_url"; \
-    echo "${arm_gnu_sha}  /tmp/arm-toolchain.tar.xz" | sha256sum -c -; \
+    bash /bsp/scripts/fetch-archive.sh "$arm_gnu_sha" "$arm_gnu_url" /tmp/arm-toolchain.tar.xz; \
     tar -C /opt -xf /tmp/arm-toolchain.tar.xz; \
     test -x "/opt/${arm_gnu_dir}/bin/aarch64-none-elf-gcc"; \
     if [ "/opt/${arm_gnu_dir}" != "$ARM_GNU_EXPECT_DIR" ]; then \
@@ -120,17 +120,14 @@ RUN set -eu; \
     fi; \
     test -x "$ARM_GNU_EXPECT_DIR/bin/aarch64-none-elf-gcc"; \
     if [ -n "$arm_linux_url" ]; then \
-        curl -L --fail --retry 3 -o /tmp/arm-linux-toolchain.tar.xz "$arm_linux_url"; \
-        echo "arm-none-linux-gnu sha256: $(sha256sum /tmp/arm-linux-toolchain.tar.xz | cut -d" " -f1)"; \
-        echo "${arm_linux_sha}  /tmp/arm-linux-toolchain.tar.xz" | sha256sum -c -; \
+        bash /bsp/scripts/fetch-archive.sh "$arm_linux_sha" "$arm_linux_url" /tmp/arm-linux-toolchain.tar.xz; \
         tar -C /opt -xf /tmp/arm-linux-toolchain.tar.xz; \
         test -x "/opt/${arm_linux_dir}/bin/aarch64-none-linux-gnu-gcc"; \
         if [ "/opt/${arm_linux_dir}" != "$ARM_LINUX_EXPECT_DIR" ]; then \
             ln -sfn "/opt/${arm_linux_dir}" "$ARM_LINUX_EXPECT_DIR"; \
         fi; \
     fi; \
-    curl -L --fail --retry 3 -o /tmp/riscv-toolchain.tgz "$riscv_url"; \
-    echo "${riscv_sha}  /tmp/riscv-toolchain.tgz" | sha256sum -c -; \
+    bash /bsp/scripts/fetch-archive.sh "$riscv_sha" "$riscv_url" /tmp/riscv-toolchain.tgz; \
     if [ -n "$riscv_subdir" ]; then \
         tar -C "$RISCV_TOOLCHAIN_DIR" -xzf /tmp/riscv-toolchain.tgz \
             --strip-components="$riscv_strip" "$riscv_subdir"; \

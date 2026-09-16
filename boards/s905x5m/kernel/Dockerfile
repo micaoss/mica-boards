@@ -24,7 +24,11 @@ COPY --from=common scripts/ /bsp/scripts/
 # HTTP/2 stalls against this host (fetch-source.sh --http1).
 ARG KERNEL_REPO
 ARG KERNEL_COMMIT
-RUN bash /bsp/scripts/fetch-source.sh --http1 --submodules /ksrc "${KERNEL_REPO}" "${KERNEL_COMMIT}"
+ARG KERNEL_GIT_NAME
+# The fetch-time mirror, tried before the pinned URL and skipped when it does
+# not answer; not an input of this build (common/scripts/mirror.sh).
+ARG MICA_MIRROR
+RUN bash /bsp/scripts/fetch-source.sh --http1 --submodules --name "${KERNEL_GIT_NAME}" /ksrc "${KERNEL_REPO}" "${KERNEL_COMMIT}"
 
 # On an arm64 builder the kernel is a native build (the bsp image's gcc answers
 # to aarch64-linux-gnu-* there); its amd64 variant carries the cross packages.

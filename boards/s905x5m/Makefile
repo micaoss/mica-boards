@@ -23,6 +23,14 @@ BSP_ARG := MICA_BUILD_BSP=mica-build-env:bsp
 # message instead of reaching docker as an empty argument.
 PIN := bash ../../tools/upstream.sh
 
+# THE FETCH-TIME MIRROR. MICA_MIRROR is passed through to the builders, which
+# try mica-res's copy of a pinned object before the row's own URL and ignore it
+# when it does not answer (common/scripts/mirror.sh). It is deliberately absent
+# from tools/inputs.sh: the bytes a build gets are the same either way, and a
+# lock URL is never rewritten.
+MIRROR_ARG := $(if $(MICA_MIRROR),--build-arg MICA_MIRROR=$(MICA_MIRROR))
+
+
 VERITY_TRUST_CERT ?= ../../meta/verity/signer.cert.pem
 FIT_TRUST_CERT ?=
 TRUST_STAGE := ../../common/trust/stage.sh
@@ -43,6 +51,7 @@ KERNEL_BUILDX = TRUST_DIR="$$(bash $(TRUST_STAGE) "$(VERITY_TRUST_CERT)" "$(BSP_
 	  --build-context common=../../common \
 	  --build-context mica-common=../../common/kernel --build-context "mica-trust=$$TRUST_DIR" \
 	  --build-arg KERNEL_REPO=$$KERNEL_REPO --build-arg KERNEL_COMMIT=$$KERNEL_COMMIT \
+	  --build-arg KERNEL_GIT_NAME=$(BOARD)-kernel $(MIRROR_ARG) \
 	  --build-arg KERNEL_EXPECT=$(KERNEL_EXPECT) --build-arg KERNEL_CONFIG=$(KERNEL_CONFIG) \
 	  --build-arg "KERNEL_FRAGMENTS=$(KERNEL_FRAGMENTS)" \
 	  --build-arg KERNEL_DTB=$(KERNEL_DTB) --build-arg KERNEL_DTB_ARTIFACT=$(KERNEL_DTB_ARTIFACT) \
@@ -74,7 +83,8 @@ uboot:
 	bash ../../common/scripts/buildx.sh $(BOARD)-uboot source --label ai-agent=true -t ai-agent/mica-$(BOARD)-uboot \
 	  --build-context mica-common=../../common/uboot --build-context "mica-boot-trust=$$TRUST_DIR" \
 	  --build-context bsp-scripts=../../common/scripts \
-	  --build-arg UBOOT_REPO=$$UBOOT_REPO --build-arg UBOOT_COMMIT=$$UBOOT_COMMIT $$TOOLCHAINS \
+	  --build-arg UBOOT_REPO=$$UBOOT_REPO --build-arg UBOOT_COMMIT=$$UBOOT_COMMIT \
+	  --build-arg UBOOT_GIT_NAME=$(BOARD)-uboot $(MIRROR_ARG) $$TOOLCHAINS \
 	  -f loader/Dockerfile $$IMG \
 	  -o $(BSP_OUT)/uboot loader
 

@@ -2,6 +2,34 @@
 
 ## 2026-09-16 [progress]
 
+Every builder fetches through `common/scripts/fetch-archive.sh` and
+`common/scripts/fetch-source.sh`, which try mica-res's mirror before a pinned
+row's own URL: `blob/<sha256[0:2]>/<sha256>` for a `source` row, and for a `git`
+row the `mica/git-pack/v1` manifest, its chunks in order and `git index-pack`.
+A lock URL is never rewritten -- it is in the component inputs hash -- so
+`MICA_MIRROR` is a fetch-time environment variable and is nowhere in
+`tools/inputs.sh`. Wrong bytes from the mirror are refused rather than fetched
+again; a 404, a refused connection and a timeout all mean "not mirrored" and
+cost one three-second connect. `tests/mirror-hook-test.sh` (25 assertions,
+`make check`) serves the contract locally, and a real `uefi-x64` source stage
+with the mirror set but unreachable fell back after 3.178 s.
+`mica-s905x5m-bluetooth` is `0.1.0-6`: the board Makefile carries the mirror
+argument and that file is in its `PREPARE_INPUTS`.
+
+## 2026-09-16 [progress]
+
+The s905x5m recovery packer runs on `linux/amd64`, not `linux/386`: the pinned
+`aml_image_v2_packer` is a statically linked i386 binary an x86-64 kernel runs
+directly, and packing the published `20260916-0857` U-Boot artifacts on amd64
+reproduces that release's `update.img` and `aml_sdc_burn.ini` byte for byte. It
+is also deterministic, so `update.img` follows the two signed U-Boot binaries
+rather than being a second reproducibility defect. That removes the only
+`linux/386` platform in the repository. There is no 64-bit vendor packer to pin
+instead, and `aml-imgpack.py` packs `AML_RES!` resource images, not this
+`0x27b51956` container.
+
+## 2026-09-16 [progress]
+
 `mica-s905x5m-bluetooth` is `0.1.0-4` (epoch 1789545600): the bsp switch edited
 `boards/s905x5m/Makefile`, which that producer declares in `PREPARE_INPUTS`, so its
 inputs moved while its version did not and the guard refused it in CI. Measured

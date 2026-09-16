@@ -57,13 +57,19 @@ ARG BOARD
 ARG KERNEL_SOURCE
 ARG KERNEL_VERSION
 ARG KERNEL_COMMIT
+ARG KERNEL_GIT_NAME
+# MICA_MIRROR: the fetch-time mirror, consulted by fetch-source.sh before the
+# pinned URL and skipped when it does not answer. It is not an input of this
+# build -- the bytes are the same either way, which is what the commit
+# assertion below proves -- so it is nowhere in tools/inputs.sh.
+ARG MICA_MIRROR
+COPY --from=mica-scripts . /bsp/scripts/
 RUN set -eu; \
     [ -n "${KERNEL_SOURCE}" ] && [ -n "${KERNEL_VERSION}" ] && [ -n "${KERNEL_COMMIT}" ] || { echo "error: the ${BOARD} kernel needs KERNEL_SOURCE, KERNEL_VERSION and KERNEL_COMMIT (the board's Makefile reads them from locks/upstream.lock)" >&2; exit 1; }; \
-    git clone --quiet --depth 1 --branch "${KERNEL_VERSION}" "${KERNEL_SOURCE}" /ksrc; \
-    got="$(git -C /ksrc rev-parse HEAD)"; \
-    [ "${got}" = "${KERNEL_COMMIT}" ] || { echo "error: linux ${KERNEL_VERSION} is commit ${got}, but locks/upstream.lock pins ${KERNEL_COMMIT}. Either the tag was moved upstream or the pin is stale; do not paste the new commit in without finding out which" >&2; exit 1; }; \
-    echo "ok linux ${KERNEL_VERSION} ${got}"; \
-    rm -rf /ksrc/.git
+    bash /bsp/scripts/fetch-source.sh --name "${KERNEL_GIT_NAME}" --tag "${KERNEL_VERSION}" \
+        /ksrc "${KERNEL_SOURCE}" "${KERNEL_COMMIT}"; \
+    echo "ok linux ${KERNEL_VERSION} ${KERNEL_COMMIT}"; \
+    rm -rf /ksrc/.git /bsp/scripts
 
 # THE CONFIGURATION, resolved. Separated from the gate below so that `make
 # kernel-config` can export the resolved .config WITHOUT the diff that is

@@ -193,6 +193,10 @@ jobs:
         if: matrix.board != ''
         env:
           BUILDX_CACHE: ${{ runner.temp }}/buildx-cache
+          # The fetch-time mirror. Unset, every fetch goes straight to the row's
+          # own URL; set, mica-res's copy is tried first and ignored when it does
+          # not answer. It changes no byte of the build (common/scripts/mirror.sh).
+          MICA_MIRROR: ${{ vars.MICA_MIRROR }}
         run: make ${{ matrix.board }}-kernel
       - name: Reduce the cache to this run's prefix stages
         if: matrix.board != '' && github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.board == '' && steps.cache.outputs.cache-hit != 'true'
@@ -254,6 +258,7 @@ jobs:
         if: matrix.board != ''
         env:
           BUILDX_CACHE: ${{ runner.temp }}/buildx-cache
+          MICA_MIRROR: ${{ vars.MICA_MIRROR }}
         run: make ${{ matrix.board }}-firmware FIT_TRUST_CERT=../../meta/boot/signer.cert.pem
       - name: Reduce the cache to this run's prefix stages
         if: matrix.board != '' && github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.board == '' && steps.cache.outputs.cache-hit != 'true'
