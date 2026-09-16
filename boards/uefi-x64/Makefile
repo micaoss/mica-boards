@@ -19,7 +19,7 @@ BSP_OUT ?= ../../_out/$(BOARD)
 # $(shell ...): a `:=` assignment runs the command while make PARSES the file,
 # discards its exit status and leaves the variable empty on failure.
 FROM_SH := ../../tools/from.sh
-UBUNTU_ARG := MICA_IMAGE_UBUNTU_2404=upstream:ubuntu:24.04
+BSP_ARG := MICA_BUILD_BSP=mica-build-env:bsp
 
 # THE UPSTREAM TREES AND ARCHIVES come from ../../locks/upstream.lock, read by
 # tools/upstream.sh in the recipe, so a missing pin stops make with its own
@@ -44,22 +44,20 @@ MICA_ARCH := $(shell sed -n 's/^MICA_ARCH=//p' board.env)
 ifeq ($(MICA_ARCH),amd64)
 KERNEL_ARGS := --build-arg KERNEL_ARCH=amd64 --build-arg KERNEL_DEFCONFIG=x86_64_defconfig \
   --build-arg KERNEL_IMAGE=bzImage --build-arg KERNEL_IMAGE_PATH=arch/x86/boot/bzImage \
-  --build-arg KERNEL_MAKE_ENV= --build-arg KERNEL_CROSS_PACKAGES=
+  --build-arg KERNEL_MAKE_ENV=
 else ifeq ($(MICA_ARCH),arm64)
 KERNEL_ARGS := --build-arg KERNEL_ARCH=arm64 --build-arg KERNEL_DEFCONFIG=defconfig \
   --build-arg KERNEL_IMAGE=Image --build-arg KERNEL_IMAGE_PATH=arch/arm64/boot/Image \
-  --build-arg "KERNEL_MAKE_ENV=ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-" \
-  --build-arg "KERNEL_CROSS_PACKAGES=gcc-aarch64-linux-gnu libc6-dev-arm64-cross"
+  --build-arg "KERNEL_MAKE_ENV=ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
 else
 $(error ../board.env declares MICA_ARCH='$(MICA_ARCH)'; this kernel build is for amd64 or arm64)
 endif
 
 KERNEL_BUILD = TRUST_DIR="$$(bash $(TRUST_STAGE) "$(VERITY_TRUST_CERT)" "$(BSP_OUT)/verity-trust")" && \
-	IMG="$$(bash $(FROM_SH) $(UBUNTU_ARG))" && \
+	IMG="$$(bash $(FROM_SH) $(BSP_ARG))" && \
 	KERNEL_SOURCE="$$($(PIN) git $(BOARD)-kernel url)" && KERNEL_VERSION="$$($(PIN) git $(BOARD)-kernel ref)" && \
 	KERNEL_COMMIT="$$($(PIN) git $(BOARD)-kernel commit)" && \
 	bash ../../common/scripts/buildx.sh $(BOARD)-kernel src --build-context mica-common=../../common/kernel \
-	  --build-context bsp-scripts=../../common/scripts --build-arg "MICA_APT_SNAPSHOT=$$(bash ../../tools/apt-snapshot.sh)" \
 	  --build-context "mica-trust=$$TRUST_DIR" \
 	  --build-arg BOARD=$(BOARD) --build-arg KERNEL_SOURCE=$$KERNEL_SOURCE \
 	  --build-arg KERNEL_VERSION=$$KERNEL_VERSION --build-arg KERNEL_COMMIT=$$KERNEL_COMMIT $(KERNEL_ARGS) \

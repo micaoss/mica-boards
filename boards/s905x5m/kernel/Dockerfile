@@ -10,8 +10,8 @@
 # The builder image is injected from locks/mica-build-env.lock by the board's Makefile.
 # There is no default: an omitted pin must fail before the build can
 # silently choose a mutable tag.
-ARG MICA_IMAGE_UBUNTU_2404
-FROM --platform=$BUILDPLATFORM ${MICA_IMAGE_UBUNTU_2404} AS source
+ARG MICA_BUILD_BSP
+FROM --platform=$BUILDPLATFORM ${MICA_BUILD_BSP} AS source
 
 ARG DEBIAN_FRONTEND=noninteractive
 COPY --from=common scripts/ /bsp/scripts/
@@ -22,23 +22,15 @@ COPY --from=common scripts/ /bsp/scripts/
 # package list and the config means editing either of those reuses the cached
 # source instead of cloning several GB again. HTTP/1.1, because git over
 # HTTP/2 stalls against this host (fetch-source.sh --http1).
-ARG MICA_APT_SNAPSHOT
-RUN bash /bsp/scripts/apt-install.sh git ca-certificates
 ARG KERNEL_REPO
 ARG KERNEL_COMMIT
 RUN bash /bsp/scripts/fetch-source.sh --http1 --submodules /ksrc "${KERNEL_REPO}" "${KERNEL_COMMIT}"
 
-# On an arm64 builder the kernel is a native build, and Ubuntu ships no
-# gcc-aarch64-linux-gnu cross package there; build-essential provides gcc.
+# On an arm64 builder the kernel is a native build (the bsp image's gcc answers
+# to aarch64-linux-gnu-* there); its amd64 variant carries the cross packages.
 ARG BUILDARCH
 ARG CROSS_COMPILE_amd64=aarch64-linux-gnu-
 ARG CROSS_COMPILE_arm64=
-RUN bash /bsp/scripts/apt-install.sh \
-        bc bison build-essential device-tree-compiler flex kmod libelf-dev \
-        libssl-dev patch perl python3 rsync \
-    && if [ "${BUILDARCH}" = "amd64" ]; then \
-           bash /bsp/scripts/apt-install.sh gcc-aarch64-linux-gnu; \
-       fi
 
 # ---- the third-party prefix ends here: the toolchain and the upstream source,
 # nothing of this repository's (the only stage a CI cache holds; see

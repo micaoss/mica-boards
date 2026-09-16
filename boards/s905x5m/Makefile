@@ -16,7 +16,7 @@ include bsp.env
 BSP_OUT ?= ../../_out/$(BOARD)
 
 FROM_SH := ../../tools/from.sh
-UBUNTU_ARG := MICA_IMAGE_UBUNTU_2404=upstream:ubuntu:24.04
+BSP_ARG := MICA_BUILD_BSP=mica-build-env:bsp
 
 # THE UPSTREAM TREES AND ARCHIVES come from ../../locks/upstream.lock, read by
 # tools/upstream.sh in the recipe, so a missing pin stops make with its own
@@ -37,12 +37,11 @@ TRUST_STAGE := ../../common/trust/stage.sh
 # kernel-profile-test builds prod alone, clean, and requires every file of it to
 # be byte-identical to the relinked prod of `make kernel`.
 KERNEL_BUILDX = TRUST_DIR="$$(bash $(TRUST_STAGE) "$(VERITY_TRUST_CERT)" "$(BSP_OUT)/verity-trust")" && \
-	IMG="$$(bash $(FROM_SH) $(UBUNTU_ARG))" && \
+	IMG="$$(bash $(FROM_SH) $(BSP_ARG))" && \
 	KERNEL_REPO="$$($(PIN) git $(BOARD)-kernel url)" && KERNEL_COMMIT="$$($(PIN) git $(BOARD)-kernel commit)" && \
 	bash ../../common/scripts/buildx.sh $(BOARD)-kernel source --label ai-agent=true -t ai-agent/mica-$(BOARD)-kernel \
 	  --build-context common=../../common \
 	  --build-context mica-common=../../common/kernel --build-context "mica-trust=$$TRUST_DIR" \
-	  --build-arg "MICA_APT_SNAPSHOT=$$(bash ../../tools/apt-snapshot.sh)" \
 	  --build-arg KERNEL_REPO=$$KERNEL_REPO --build-arg KERNEL_COMMIT=$$KERNEL_COMMIT \
 	  --build-arg KERNEL_EXPECT=$(KERNEL_EXPECT) --build-arg KERNEL_CONFIG=$(KERNEL_CONFIG) \
 	  --build-arg "KERNEL_FRAGMENTS=$(KERNEL_FRAGMENTS)" \
@@ -65,7 +64,7 @@ UBOOT_TOOLCHAINS := ARM_GNU_TOOLCHAIN:s905x5m-arm-gnu-toolchain:amd64 ARM_GNU_TO
 	RISCV_TOOLCHAIN:s905x5m-riscv-toolchain:amd64 RISCV_TOOLCHAIN:s905x5m-riscv-toolchain:arm64
 uboot:
 	TRUST_DIR="$$(bash $(TRUST_STAGE) "$(FIT_TRUST_CERT)" "$(BSP_OUT)/fit-trust")" && \
-	IMG="$$(bash $(FROM_SH) $(UBUNTU_ARG))" && \
+	IMG="$$(bash $(FROM_SH) $(BSP_ARG))" && \
 	UBOOT_REPO="$$($(PIN) git $(BOARD)-uboot url)" && UBOOT_COMMIT="$$($(PIN) git $(BOARD)-uboot commit)" && \
 	TOOLCHAINS="$$(for row in $(UBOOT_TOOLCHAINS); do \
 	  set -- $$(echo "$$row" | tr : ' '); \
@@ -74,7 +73,7 @@ uboot:
 	done)" && \
 	bash ../../common/scripts/buildx.sh $(BOARD)-uboot source --label ai-agent=true -t ai-agent/mica-$(BOARD)-uboot \
 	  --build-context mica-common=../../common/uboot --build-context "mica-boot-trust=$$TRUST_DIR" \
-	  --build-context bsp-scripts=../../common/scripts --build-arg "MICA_APT_SNAPSHOT=$$(bash ../../tools/apt-snapshot.sh)" \
+	  --build-context bsp-scripts=../../common/scripts \
 	  --build-arg UBOOT_REPO=$$UBOOT_REPO --build-arg UBOOT_COMMIT=$$UBOOT_COMMIT $$TOOLCHAINS \
 	  -f loader/Dockerfile $$IMG \
 	  -o $(BSP_OUT)/uboot loader

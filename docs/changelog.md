@@ -2,6 +2,20 @@
 
 ## 2026-09-16 [progress]
 
+The kernel, U-Boot and loader builders build FROM the mica-build-env `bsp` image
+(release `20260916-0735`, pinned by digest in `locks/mica-build-env.lock`) instead
+of installing a toolchain from the Ubuntu archive snapshot: no build of this
+repository fetches an apt byte any more, and the 502/503 outage of
+snapshot.ubuntu.com earlier today is exactly the failure this removes.
+`common/scripts/apt-install.sh`, `tools/apt-snapshot.sh` and the three
+`ubuntu-<suite>` rows of `locks/upstream.lock` are gone; the toolchain enters the
+kernel and U-Boot inputs as the image digest (`tools/inputs.sh`), and the cross
+packages come with the image's amd64 variant rather than from
+`KERNEL_CROSS_PACKAGES`, which is retired with them. The three vendor toolchains
+of the s905x5m U-Boot stay `source` rows fetched at their pinned sha256.
+
+## 2026-09-16 [progress]
+
 The generic systems are named by their firmware class (user decision 2026-09-16):
 `boards/x64` is `boards/uefi-x64` and `boards/virt-arm64` is `boards/uefi-arm64`;
 the hardware boards keep their names. The packages are new names with fresh

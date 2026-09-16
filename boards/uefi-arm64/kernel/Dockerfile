@@ -15,8 +15,6 @@
 #   KERNEL_IMAGE_PATH     where Kbuild leaves it
 #   KERNEL_MAKE_ENV       `ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-` for arm64 (on an arm64 builder those
 #                         names are the native tools), empty for amd64
-#   KERNEL_CROSS_PACKAGES the cross toolchain packages, installed only when the builder's architecture
-#                         (BUILDARCH) is not KERNEL_ARCH, the board's
 #
 #   make kernel          -> _out/<board>/kernel/{bzImage|Image,modules.tar,config,kernel.release}
 #   make kernel-config   -> rewrites config/<board>.config from this build
@@ -41,26 +39,15 @@
 # with, pinned by digest in this repository. There is no default: without a value docker
 # refuses before any stage runs, where a default would build green against an
 # image nobody chose.
-ARG MICA_IMAGE_UBUNTU_2404
-FROM --platform=$BUILDPLATFORM ${MICA_IMAGE_UBUNTU_2404} AS toolchain
+ARG MICA_BUILD_BSP
+FROM --platform=$BUILDPLATFORM ${MICA_BUILD_BSP} AS toolchain
 
-ARG DEBIAN_FRONTEND=noninteractive
-# No device-tree compiler: a UEFI machine's firmware describes the hardware,
-# so there is no .dts in this family and nothing to compile. The cross
-# toolchain is installed only when the board's architecture is not the
-# builder's; an empty KERNEL_CROSS_PACKAGES installs nothing more.
-# From the Ubuntu archive snapshot locks/upstream.lock pins (MICA_APT_SNAPSHOT,
-# common/scripts/apt-install.sh), so the toolchain cannot move under the pins.
-ARG KERNEL_CROSS_PACKAGES
+# The toolchain is the image, not an install step: mica-build-env's bsp image
+# carries the Ubuntu 24.04 userland, gcc and the aarch64 cross packages (on its
+# amd64 variant), pinned by digest in locks/mica-build-env.lock. Nothing is
+# fetched here, so no build depends on a live archive.
 ARG KERNEL_ARCH
 ARG BUILDARCH
-ARG MICA_APT_SNAPSHOT
-COPY --from=bsp-scripts apt-install.sh /bsp/scripts/apt-install.sh
-RUN cross=""; [ "${BUILDARCH}" = "${KERNEL_ARCH}" ] || cross="${KERNEL_CROSS_PACKAGES}"; \
-    bash /bsp/scripts/apt-install.sh \
-        git ca-certificates build-essential bc bison flex \
-        libssl-dev libelf-dev python3 kmod cpio xz-utils zstd \
-        ${cross}
 
 # THE SOURCE, at the tag its git row pins, checked to be the commit the row
 # records: a tag is a name upstream can move, and a moved tag stops the build

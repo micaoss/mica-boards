@@ -4,48 +4,15 @@
 # The base image is injected from locks/mica-build-env.lock by the BSP Makefile.
 # There is no default: omitting the repository pin must fail before the build
 # can silently select a mutable image tag.
-ARG MICA_IMAGE_UBUNTU_2404
-FROM --platform=$BUILDPLATFORM ${MICA_IMAGE_UBUNTU_2404} AS source
+ARG MICA_BUILD_BSP
+FROM --platform=$BUILDPLATFORM ${MICA_BUILD_BSP} AS source
 
 ARG DEBIAN_FRONTEND=noninteractive
-# From the Ubuntu archive snapshot locks/upstream.lock pins (MICA_APT_SNAPSHOT,
-# common/scripts/apt-install.sh).
-ARG MICA_APT_SNAPSHOT
-COPY --from=bsp-scripts apt-install.sh /bsp/scripts/apt-install.sh
-RUN bash /bsp/scripts/apt-install.sh \
-        autoconf \
-        automake \
-        bc \
-        bison \
-        build-essential \
-        ca-certificates \
-        cmake \
-        curl \
-        flex \
-        gawk \
-        zstd \
-        gcc-aarch64-linux-gnu \
-        git \
-        gperf \
-        libexpat-dev \
-        libglib2.0-dev \
-        libgmp-dev \
-        libmpc-dev \
-        libmpfr-dev \
-        libslirp-dev \
-        libssl-dev \
-        libtool \
-        ninja-build \
-        patchutils \
-        python3 \
-        python3-pip \
-        python3-tomli \
-        swig \
-        texinfo \
-        vim-common \
-        xxd \
-        xz-utils \
-        zlib1g-dev
+# The toolchain is the bsp image of mica-build-env, pinned by digest in
+# locks/mica-build-env.lock: it carries the union of the kernel, U-Boot and
+# packer build dependencies of this repository, including the aarch64 cross
+# packages on its amd64 variant. Nothing is installed here; the three vendor
+# toolchains below are still fetched at their pinned sha256.
 
 ARG UBOOT_REPO
 ARG UBOOT_COMMIT
@@ -228,7 +195,6 @@ ENV PATH=/opt/riscv-none-gcc/8.2.0-2.2-20190521-0004/bin:$PATH
 
 # Native Mica OS boot uses the platform/display fixes and the signed-file policy.
 ENV SOURCE_DATE_EPOCH=1577836800
-RUN bash /bsp/scripts/apt-install.sh device-tree-compiler
 # ---- the third-party prefix ends here: the toolchain and the upstream source,
 # nothing of this repository's (the only stage a CI cache holds; see
 # common/scripts/buildx.sh). The build continues on it with the

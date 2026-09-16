@@ -111,7 +111,7 @@ jobs:
           # Makefiles, Dockerfiles, common/{kernel,uboot,scripts,trust} and the pins are hashed): a change
           # to one must be proven by a build, not by the release that predates it. Kept out of the
           # inputs hash so that a workflow-only edit moves no component digest.
-          BUILD_FILES=".github/workflows/build.yml .github/workflows/ci.yml Makefile tools/locks.sh tools/check-lock.sh tools/from.sh tools/upstream.sh tools/apt-snapshot.sh tools/ci-outputs.sh tools/inputs.sh tools/reuse.sh"
+          BUILD_FILES=".github/workflows/build.yml .github/workflows/ci.yml Makefile tools/locks.sh tools/check-lock.sh tools/from.sh tools/upstream.sh tools/ci-outputs.sh tools/inputs.sh tools/reuse.sh"
           all=""
           if [ -z "${RELEASE}" ]; then
               case "${EVENT}" in

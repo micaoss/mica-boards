@@ -27,8 +27,8 @@
 # nobody has booted on the hardware. There is no default: without a value docker
 # refuses before any stage runs, where a default would build green against an
 # image nobody chose.
-ARG MICA_IMAGE_UBUNTU_2404
-FROM --platform=$BUILDPLATFORM ${MICA_IMAGE_UBUNTU_2404} AS source
+ARG MICA_BUILD_BSP
+FROM --platform=$BUILDPLATFORM ${MICA_BUILD_BSP} AS source
 
 # THE BUILD CLOCK, pinned. Measured under RFCT-343: this Dockerfile pinned none
 # of SOURCE_DATE_EPOCH or KBUILD_BUILD_*, and both variants shipped their own
@@ -55,19 +55,11 @@ COPY --from=bsp-scripts . /bsp/scripts/
 
 # The package LIST stays here rather than in a file: it is what this builder is,
 # and it belongs beside the FROM that says which image it is installed into.
-ARG DEBIAN_FRONTEND=noninteractive
-# Native on an arm64 builder (Ubuntu's gcc and binutils there answer to
-# aarch64-linux-gnu-*; no cross package exists), cross on amd64. The host
-# tools this build ships (mkimage, fdt_add_pubkey, fit_check_sign, dumpimage)
-# are binaries of the builder's architecture.
+# The toolchain is the bsp image of mica-build-env, pinned by digest: native on
+# an arm64 builder, cross on amd64 (its amd64 variant carries the aarch64 cross
+# packages). The host tools this build ships (mkimage, fdt_add_pubkey,
+# fit_check_sign, dumpimage) are binaries of the builder's architecture.
 ARG BUILDARCH
-ARG MICA_APT_SNAPSHOT
-RUN bash /bsp/scripts/apt-install.sh \
-        git ca-certificates build-essential bc bison flex \
-        libssl-dev python3 python3-setuptools python3-pyelftools \
-        device-tree-compiler swig python3-dev \
-        libgnutls28-dev uuid-dev \
-    && if [ "${BUILDARCH}" = amd64 ]; then bash /bsp/scripts/apt-install.sh gcc-aarch64-linux-gnu; fi
 
 ARG RKBIN_REPO
 ARG RKBIN_COMMIT

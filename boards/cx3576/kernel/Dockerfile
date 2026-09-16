@@ -20,24 +20,17 @@
 # than mica-build-c: this cross-compiles a vendor tree against the toolchain
 # versions that tree was tested with. No default, so a build without the
 # value is refused rather than built against an image nobody chose.
-ARG MICA_IMAGE_UBUNTU_2404
-FROM --platform=$BUILDPLATFORM ${MICA_IMAGE_UBUNTU_2404} AS source
+ARG MICA_BUILD_BSP
+FROM --platform=$BUILDPLATFORM ${MICA_BUILD_BSP} AS source
 
 COPY --from=common scripts/ /bsp/scripts/
 
-# The package list stays here rather than in a file: it is what this builder is,
-# and it belongs beside the FROM that says which image it is installed into.
-ARG DEBIAN_FRONTEND=noninteractive
-# On an arm64 builder (the native CI runner) the build is native: Ubuntu's gcc
-# and binutils there already answer to aarch64-linux-gnu-*, and there is no
-# gcc-aarch64-linux-gnu cross package to install. On amd64 it cross-compiles.
+# The toolchain is the bsp image of mica-build-env, pinned by digest in
+# locks/mica-build-env.lock: it carries the kernel build dependencies and, on
+# its amd64 variant, the aarch64 cross packages. On an arm64 builder (the native
+# CI runner) the build is native -- that image's gcc already answers to
+# aarch64-linux-gnu-*. Nothing is installed here.
 ARG BUILDARCH
-ARG MICA_APT_SNAPSHOT
-RUN bash /bsp/scripts/apt-install.sh \
-        git ca-certificates build-essential bc bison flex \
-        libssl-dev libelf-dev python3 kmod patch \
-        device-tree-compiler \
-    && if [ "${BUILDARCH}" = amd64 ]; then bash /bsp/scripts/apt-install.sh gcc-aarch64-linux-gnu; fi
 
 ARG KERNEL_REPO
 ARG KERNEL_COMMIT

@@ -96,7 +96,7 @@ kernel command line, written for both profiles (mica docs decision
 
 ```
 common/
-  scripts/   apt-install.sh, fetch-source.sh, apply-patches.sh (the builders' shared steps);
+  scripts/   fetch-source.sh, apply-patches.sh, buildx.sh (the builders' shared steps);
              buildx.sh (docker buildx build, with the CI cache of a build's third-party prefix stage)
   kernel/    mica-required.fragment (the shared kernel floor), floor-check.sh (the floor, asserted after olddefconfig),
              kernel-config-test.sh (the committed configs against it), export-regdb-certs.py (the regulatory
@@ -132,8 +132,8 @@ environment where the build sets it.
 | `modules-verify.sh` (s905x5m) | after depmod | `<module-dir>` | the indexed set carries them once |
 
 The artefacts are reproducible (`KBUILD_BUILD_*` and `SOURCE_DATE_EPOCH` are
-pinned, and the kernel and U-Boot builders install their toolchains from the
-Ubuntu archive snapshot the `ubuntu-<suite>` rows of `locks/upstream.lock` pin,
-`common/scripts/apt-install.sh`): the proof of a change to a board's build is its kernel and U-Boot
+pinned, and the kernel and U-Boot builders take their toolchain from the
+digest-pinned mica-build-env `bsp` image of `locks/mica-build-env.lock` rather
+than installing it): the proof of a change to a board's build is its kernel and U-Boot
 byte-identical to the build before it, where the change was not meant to move
 them.
