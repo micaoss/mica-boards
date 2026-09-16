@@ -69,3 +69,29 @@ The packer was measured directly (see
 reproduces that release's `update.img` byte for byte. So `update.img` differs
 between builds only because `u-boot.bin.signed` and `u-boot.bin.sd.bin.signed`
 do, and the open question stays exactly where it was: the two signed binaries.
+
+## Consequence for reuse: this component will always show as changed
+
+For as long as the vendor signing is non-deterministic, the s905x5m `uboot`
+component can never rebuild byte-identically, so any release that rebuilds it
+publishes different bytes than the one before. That is not a defect in
+`tools/reuse.sh`: reuse is decided by the inputs hash, and an unchanged hash
+still reuses the published component by digest without rebuilding it. Only a
+release whose inputs moved -- a loader change, a new pinned toolchain image --
+pays it, and then the difference is expected and must not be chased as a reuse
+bug. It costs little today because s905x5m is not a release target in
+`mica-build`; on the day it becomes one, its update archives will always carry
+the loader.
+
+## Method note: compare layer bytes, not manifest digests
+
+Every comparison in this record and in
+[20260916-1643](20260916-1643-s905x5m-packer-without-i386.md) is a comparison
+of the OCI **layer** digests of two published components, not of their manifest
+digests. A manifest carries the release string, so its digest moves at every
+release even when every byte of every layer is identical; comparing manifests
+would report all four boards as changed. The second observation of this defect
+(between `s905x5m.20260916-0558` and `s905x5m.20260916-0857`, across the
+build-env `bsp` toolchain switch) was made this way: the same three files, plus
+`update.img.sha256`, differ and the other eight layers of the component --
+including all five U-Boot host tools and `u-boot.dtb` -- are identical.
