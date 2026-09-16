@@ -910,7 +910,7 @@ stage_install() {
     fi
     local profile=""
     [ -r /usr/share/mica/release-identity.env ] &&
-        profile=$(sed -n 's/^PROFILE=//p' /usr/share/mica/release-identity.env | head -n1)
+        profile=$(sed -n '/^PROFILE=/{s/^PROFILE=//;p;q;}' /usr/share/mica/release-identity.env)
     measure BIND-PROFILE "${profile:-not collected: no PROFILE in release-identity.env}"
     measure BIND-IMAGE "source=$SOURCE_COMMIT tree=$SOURCE_TREE image=$IMAGE_NAME sha256=$IMAGE_SHA256 verification=$VERIFICATION_RECORD profile=$PROFILE board=$BOARD_REVISION radio=$RADIO_SKU system=$SYSTEM_BLOCK"
 

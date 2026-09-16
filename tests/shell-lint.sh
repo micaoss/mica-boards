@@ -20,12 +20,15 @@
 # >/dev/null` keeps the same exit status, reads to EOF, and hands nobody a
 # closed pipe.
 #
-# NOT flagged, though they exit early too: `| grep -m1`, `| head`, `| sed q`.
-# These PRINT, so they are normally used for their output -- tests/apid-api/run.sh
-# does `hit="$(console_since ... | grep -m1 APID_LISTENING || true)"`, where the
-# matched line is the point and the status is discarded. Flagging -m as well
-# would make that line the rule's only hit in the tree, and a rule whose every
-# finding is a false positive is worse than no rule.
+# ALSO FLAGGED, since 2026-09-16 (mica-podman found the same class in this
+# shape): `| grep -m<n>` and `| head`. They print, so they look like a value
+# rather than a status, but they exit at their limit just as `-q` does, and the
+# producer's next write dies of SIGPIPE under pipefail -- a failure that depends
+# on how much the producer still had to say. The fix is the same shape every
+# time: take the first match where the reading happens (`sed -n '/x/{s///;p;q;}'`
+# over a file, `grep -m1` with no pipe), or capture the whole output and take the
+# first line with `${value%%$'\n'*}`. Not flagged: `| tail`, `| sed q` and awk
+# with `exit`, which read to EOF or are not in use here.
 #
 # Comment lines are skipped, so prose describing the trap -- including the
 # paragraph above -- is not reported as an instance of it.
@@ -100,14 +103,14 @@ for f in "${files[@]}"; do
     scanned=$((scanned + 1))
     # A pipe, optional whitespace, then grep with -q among its flags; comment
     # lines dropped afterwards so prose about the trap is not an instance of it.
-    hits="$(grep -nE '\|[[:space:]]*(command[[:space:]]+)?e?grep([[:space:]]+-[A-Za-z]*q[A-Za-z]*)+' "${f}" |
+    hits="$(grep -nE '\|[[:space:]]*(command[[:space:]]+)?(e?grep([[:space:]]+-[A-Za-z]*[qm][A-Za-z]*)+|head([[:space:]]|$))' "${f}" |
         grep -vE '^[0-9]+:[[:space:]]*#' || true)"
     if [ -n "${hits}" ]; then
         while IFS= read -r h; do
-            fail "${f}:${h%%:*}: an early-exiting grep on the right of a pipe, in a file that sets pipefail or is sourced by one: the pipeline reports failure when the pattern IS found. Use 'grep -c ... >/dev/null', or a loop for a membership test"
+            fail "${f}:${h%%:*}: an early-exiting reader (grep -q, grep -m, head) on the right of a pipe, in a file that sets pipefail or is sourced by one: the reader stops and the producer dies of SIGPIPE, so the pipeline fails exactly when it found what it was looking for. Use 'grep -c ... >/dev/null' or a loop for a membership test, and take a first match where the reading happens (sed with q, grep -m1 without a pipe) or from a captured value"
         done <<<"${hits}"
     else
-        pass "${f} pipes nothing into an early-exiting grep"
+        pass "${f} pipes nothing into an early-exiting reader"
     fi
 done
 
