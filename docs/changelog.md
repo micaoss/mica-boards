@@ -2,6 +2,30 @@
 
 ## 2026-09-16 [progress]
 
+The generic systems are named by their firmware class (user decision 2026-09-16):
+`boards/x64` is `boards/uefi-x64` and `boards/virt-arm64` is `boards/uefi-arm64`;
+the hardware boards keep their names. The packages are new names with fresh
+declared versions, `mica-board-uefi-x64` and `mica-board-uefi-arm64` at `0.1.0-1`
+(not bumps of the old ones); `boards/boards.tsv`, each board's `outputs.tsv`, the
+kernel config and required file names, the `<board>-kernel` git rows of
+`locks/upstream.lock`, the tests, the READMEs and `evidence.json` follow. Every
+identity stays as it was -- the partition GUIDs, the filesystem UUIDs and the ESP
+volume ids are the same boards under new names.
+
+uefi-arm64 is now the generic UEFI/ACPI arm64 image and a release target
+(`BOARD_RELEASE_TARGET=1`). Its kernel keeps virtio and adds what a generic UEFI
+machine needs to reach its root before any module can load: NVMe, AHCI/SATA, SCSI
+disk, USB mass storage behind xHCI/EHCI, PCIe port services, HID, ACPI, DMI and
+the EFI and PL031 clocks. The physical NIC families (Intel, Realtek, Broadcom,
+Mellanox, Aquantia) and their PHYs are modules: networking is not on the path to
+the root. SD/eMMC is deliberately absent -- a machine that boots from a platform
+MMC controller is a hardware board, not this image.
+`kernel/config/uefi-arm64.required` now holds mica-build's list (read from the
+built config of its bundle, every entry `builtin`) together with that hardware
+set, and `tools/kernel-config-test.sh` holds the resolved config to it.
+
+## 2026-09-16 [progress]
+
 Board release tags are `<board>.<YYYYMMDD-HHMM>` (user decision 2026-09-16, mica
 `docs/decisions/2026-09-16-scoped-tags-use-a-dot.md`; spec f742615). No
 compatibility form: `tools/check-lock.sh` splits a release row at its last dot, so

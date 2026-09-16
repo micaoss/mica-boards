@@ -1,4 +1,4 @@
-# mica-boards: the boards of Mica OS -- x64, virt-arm64, cx3576, s905x5m --
+# mica-boards: the boards of Mica OS -- uefi-x64, uefi-arm64, cx3576, s905x5m --
 # one directory each under boards/: the board definition, its kernel and
 # U-Boot builds, its package inputs, the evidence and the board's tests
 # (boards/README.md). This file routes: `make <board>-<target>` delegates to
@@ -31,7 +31,7 @@ help:
 	@echo "  uboot-env-test      the FIT loaders' environment entry decodes the assembly's layout and round-trips (docker)"
 	@echo "  ci-outputs-test     tools/ci-outputs.sh: one or several workflow artifacts unpack the same, a missing one is refused"
 	@echo "  publish-test        the publishers and the lock writer against a local registry container: component and pool tags, reuse, every refusal (docker)"
-	@echo "  version-guard-test  package versions against a local registry on the x64 producer: unchanged reused, bumped built, refusals (docker)"
+	@echo "  version-guard-test  package versions against a local registry on the uefi-x64 producer: unchanged reused, bumped built, refusals (docker)"
 	@echo "  board-contract-test every board declares BOARD_FEATURES and its images.tsv, carries its own kernel and U-Boot build and manifests/, and is listed in boards/boards.tsv with its outputs.tsv"
 	@echo "  kernel-config-test  every board's committed kernel config carries the shared floor (common/kernel/kernel-config-test.sh)"
 	@echo "  locks-test          the lock checker over the release-lock vectors, the committed locks and every Dockerfile's syntax pin"

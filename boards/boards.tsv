@@ -4,5 +4,5 @@
 # boards/<board>/outputs.tsv, which travels in its bundle; read by tools/boards.sh.
 cx3576	arm64	uboot-fit
 s905x5m	arm64	uboot-fit
-virt-arm64	arm64	systemd-boot
-x64	amd64	systemd-boot
+uefi-arm64	arm64	systemd-boot
+uefi-x64	amd64	systemd-boot

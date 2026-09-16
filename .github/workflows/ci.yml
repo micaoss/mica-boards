@@ -27,10 +27,10 @@ jobs:
       ref: ${{ github.sha }}
 
   # The path a board release takes: one board, one architecture's pool, one
-  # artifact per download (x64: the smallest board).
+  # artifact per download (uefi-x64: the smallest board).
   build-board:
     needs: check
     uses: ./.github/workflows/build.yml
     with:
       ref: ${{ github.sha }}
-      board: x64
+      board: uefi-x64

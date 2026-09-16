@@ -97,7 +97,7 @@ CONFIG_BRIDGE=y
 # shared core. The per-symbol citations into the pinned netavark source live
 # in tests/netavark-kernel-config-test.sh; the same set was measured
 # missing on hardware (s905x5m, cx3576 baseline) as the reason bridge
-# networking failed. x64 runs Debian's kernel, where these ship as modules --
+# networking failed. uefi-x64 runs Debian's kernel, where these ship as modules --
 # verify/src/checks-kernel.ts asserts that off the built image.
 CONFIG_VETH=y
 CONFIG_NFT_FIB=y
@@ -141,7 +141,7 @@ CONFIG_NFT_MASQ=y
 # The x_tables extensions the shipped iptables cannot do without, and the
 # measurement that moved them here from "policy". RFCT-304 has the full run.
 #
-# WHAT WAS MEASURED, on the x64 kernel this tree builds (6.12.107, booted under
+# WHAT WAS MEASURED, on the uefi-x64 kernel this tree builds (6.12.107, booted under
 # QEMU on an initramfs carrying the image's own iptables 1.8.11 and nftables
 # 1.1.3), reading nft --json rather than nft list ruleset. That distinction is
 # the whole reason this block exists: the TEXT renderer runs an xt expression
@@ -159,17 +159,17 @@ CONFIG_NFT_MASQ=y
 #   # iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080
 #   Warning: Extension REDIRECT revision 0 not supported, missing kernel module?
 #
-# so REDIRECT, CHECKSUM and CT -- absent on x64, =y on cx3576 -- were the
+# so REDIRECT, CHECKSUM and CT -- absent on uefi-x64, =y on cx3576 -- were the
 # operator-visible half of the split PLAN-074 section 7h recorded: the
 # documented compatibility path worked on one board and refused on the other.
-# The other four were =m on x64 and loaded on demand from the root, so that
+# The other four were =m on uefi-x64 and loaded on demand from the root, so that
 # half was cosmetic, which is what the measurement was there to decide rather
 # than assume.
 #
 # WHY =y AND NOT =m, given none of these is needed before the root is mounted.
 # Two statements are what this file exists to stop: a floor that said "=m is
 # enough here but not there" would be per-board configuration wearing the
-# shared file's name, and x64's config is built by SUBTRACTION, so a symbol
+# shared file's name, and uefi-x64's config is built by SUBTRACTION, so a symbol
 # this file does not pin is actively removed rather than merely defaulted. The
 # cost is measured and small -- see docs/boards/contract.md section 4.2.
 #
@@ -188,13 +188,13 @@ CONFIG_NFT_MASQ=y
 # and leaving SNAT/DNAT one class weaker would have left the defect open.
 #
 # NOT "everything both boards already had". Three of the eight -- CHECKSUM, CT
-# and REDIRECT -- were absent on x64, so adopting them ADDED capability there.
+# and REDIRECT -- were absent on uefi-x64, so adopting them ADDED capability there.
 # The line is the assigned split, not a cost-free one.
 #
 # FOUR MORE DIFFERENCES OF THIS EXACT CLASS EXIST AND ARE DELIBERATELY NOT
 # CLOSED HERE (RFCT-304, docs/boards/contract.md section 4.2.3): -m multiport,
-# -m comment and -j CT --zone answer on cx3576 and are refused on x64, and -j
-# LOG answers on x64 and is refused on cx3576. Each of those needs a DIRECTION
+# -m comment and -j CT --zone answer on cx3576 and are refused on uefi-x64, and -j
+# LOG answers on uefi-x64 and is refused on cx3576. Each of those needs a DIRECTION
 # chosen -- add the capability to the board that lacks it, or take it from the
 # board that has it -- and that is a decision about what the product's
 # compatibility path guarantees, not a measurement. Adding a line here is a
@@ -214,7 +214,7 @@ CONFIG_NETFILTER_XT_TARGET_REDIRECT=y
 #   NF_CONNTRACK_MARK -- netavark sets and matches a connection mark on the
 #   dnat path (src/firewall/nft.rs:286,1090 at the v2.1.0 this tree pins), so
 #   published ports depend on it. It is a plain bool that defaults to n under
-#   NETFILTER_ADVANCED, so a config that does not name it does not get it: x64
+#   NETFILTER_ADVANCED, so a config that does not name it does not get it: uefi-x64
 #   silently had `is not set` while cx3576 asserted it in its own board loop,
 #   which is the board-specific floor this file exists to stop.
 #
@@ -246,7 +246,7 @@ CONFIG_NF_NAT_MASQUERADE=y
 # a bridge exists. Built in, as it is on an in-tree board kernel, that happens
 # at the first bridge; as a module, as on Debian's, only once something loads
 # it. So on cx3576 an ip-family FORWARD policy applies to same-bridge container
-# traffic from the moment podman creates its network, and on x64 today it does
+# traffic from the moment podman creates its network, and on uefi-x64 today it does
 # not. The capability is common; the default state is not, and a DROP policy
 # written against one board will not behave the same on the other.
 CONFIG_BRIDGE_NETFILTER=y
@@ -265,10 +265,10 @@ CONFIG_NF_CONNTRACK_BRIDGE=y
 # This is the KERNEL side, provisioned ahead of the decision above it.
 #
 # WHY AHEAD, and this is the whole argument. A kernel symbol costs a rebuild of
-# every board, and x64's kernel is now configured by subtraction: PLAN-074's
+# every board, and uefi-x64's kernel is now configured by subtraction: PLAN-074's
 # config drops the driver classes and filesystems nothing consumes, so a symbol
 # that is not named here is not merely absent, it is actively removed. Debian
-# shipped the crypt target as a module and the trimmed x64 config does not.
+# shipped the crypt target as a module and the trimmed uefi-x64 config does not.
 # Naming it now costs one rebuild that was happening anyway; naming it later
 # costs two.
 #
@@ -290,7 +290,7 @@ CONFIG_NF_CONNTRACK_BRIDGE=y
 # -- the reasoning that it is only needed for the LUKS1 aes-cbc-essiv:sha256
 # default is true and irrelevant, because the dependency is the kernel's, not
 # ours. The accelerated x86 AES likewise selects the cryptd and SIMD helpers.
-# Six built-in symbols in total on x64, measured, not three.
+# Six built-in symbols in total on uefi-x64, measured, not three.
 #
 # GENERIC ONLY, DELIBERATELY. The accelerated AES is a different symbol on each
 # architecture -- AES_NI_INTEL on x86, AES_ARM64_CE_BLK on arm64 -- and neither

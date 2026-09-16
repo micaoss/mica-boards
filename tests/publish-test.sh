@@ -89,7 +89,7 @@ with open(out, 'wb') as f:
         f.write(f'{n + "/":<16}{0:<12}{0:<6}{0:<6}{"100644":<8}{len(d):<10}`\n'.encode() + d + (b'\n' if len(d) % 2 else b''))
 PY
 }
-for b in x64 cx3576; do
+for b in uefi-x64 cx3576; do
     outputs "${b}"
     a="$(bash tools/boards.sh arch "${b}")"
     mkdir -p "${CLONE}/_out/debs/${a}/pool"
@@ -136,17 +136,17 @@ lock_of() { echo "${WORK}/rows-$1-${2//\//-}/out/mica-boards.lock"; }
 served() { echo "sha256:$(curl -sf -H "Accept: ${MT}" "${REG}/$1/mica-boards/manifests/$2" | sha256sum | cut -d' ' -f1)"; } # <owner> <tag>
 
 # 0. Only a release publishes.
-if run notag "x64.${STAMP}" "${WORK}/notag.log" tools/publish-components.sh; then fail "a checkout without the release tag published"
+if run notag "uefi-x64.${STAMP}" "${WORK}/notag.log" tools/publish-components.sh; then fail "a checkout without the release tag published"
 elif says "${WORK}/notag.log" "carries no release tag"; then pass "no release tag on HEAD: refused"
 else fail "no release tag: $(tail -n2 "${WORK}/notag.log")"; fi
-git -C "${CLONE}" tag "x64.${STAMP}"
+git -C "${CLONE}" tag "uefi-x64.${STAMP}"
 git -C "${CLONE}" tag "cx3576.${STAMP}"
-if run othertag "x64.20260101-0001" "${WORK}/othertag.log" tools/publish-components.sh; then fail "a release event naming another tag published"
-elif says "${WORK}/othertag.log" "the release event names x64.20260101-0001"; then pass "a release event naming another tag: refused"
+if run othertag "uefi-x64.20260101-0001" "${WORK}/othertag.log" tools/publish-components.sh; then fail "a release event naming another tag published"
+elif says "${WORK}/othertag.log" "the release event names uefi-x64.20260101-0001"; then pass "a release event naming another tag: refused"
 else fail "other release tag: $(tail -n2 "${WORK}/othertag.log")"; fi
 
 # 1. Two first releases in one minute: every component built and published, locks valid.
-for b in x64 cx3576; do
+for b in uefi-x64 cx3576; do
     tag="${b}.${STAMP}"; a="$(bash tools/boards.sh arch "${b}")"; L="$(lock_of one "${tag}")"
     if release one "${tag}"; then pass "${tag}: pool, components and lock published"
     else fail "${tag}: $(tail -n3 "${WORK}/one-${b}.${STAMP}-pool.log" "${WORK}/one-${b}.${STAMP}-components.log" "${WORK}/one-${b}.${STAMP}-lock.log" 2>/dev/null)"; continue; fi
@@ -169,21 +169,21 @@ for b in x64 cx3576; do
 done
 [ "$(curl -sf "${REG}/one/mica-boards/tags/list" | jq -r '.tags | length')" = 8 ] && pass "two boards in one minute: eight distinct tags" || fail "tags: $(curl -s "${REG}/one/mica-boards/tags/list")"
 
-# 2. The next x64 release with unchanged inputs reuses every component by digest.
-remember "x64.${STAMP}" "$(lock_of one "x64.${STAMP}")"
+# 2. The next uefi-x64 release with unchanged inputs reuses every component by digest.
+remember "uefi-x64.${STAMP}" "$(lock_of one "uefi-x64.${STAMP}")"
 NEXT=20260101-0100
-git -C "${CLONE}" tag "x64.${NEXT}"
-if release one "x64.${NEXT}" && says "${WORK}/one-x64.${NEXT}-components.log" "0 component(s) published, 2 reused"; then pass "unchanged inputs: every component reused, none built"
-else fail "reuse: $(tail -n3 "${WORK}/one-x64.${NEXT}-components.log")"; fi
+git -C "${CLONE}" tag "uefi-x64.${NEXT}"
+if release one "uefi-x64.${NEXT}" && says "${WORK}/one-uefi-x64.${NEXT}-components.log" "0 component(s) published, 2 reused"; then pass "unchanged inputs: every component reused, none built"
+else fail "reuse: $(tail -n3 "${WORK}/one-uefi-x64.${NEXT}-components.log")"; fi
 for c in board kernel; do
-    [ "$(served one "${c}.x64.${NEXT}")" = "$(served one "${c}.x64.${STAMP}")" ] && pass "the reused ${c} tag names the published digest" || fail "${c}.x64.${NEXT} is another digest"
+    [ "$(served one "${c}.uefi-x64.${NEXT}")" = "$(served one "${c}.uefi-x64.${STAMP}")" ] && pass "the reused ${c} tag names the published digest" || fail "${c}.uefi-x64.${NEXT} is another digest"
 done
-[ "$(served one "pool.x64.amd64.${NEXT}")" = "$(served one "pool.x64.amd64.${STAMP}")" ] && pass "unchanged archives: the next release's pool tag is the published pool digest" || fail "pool.x64.amd64.${NEXT} is another digest"
-m="$(curl -sf -H "Accept: ${MT}" "${REG}/one/mica-boards/manifests/pool.x64.amd64.${STAMP}")"
+[ "$(served one "pool.uefi-x64.amd64.${NEXT}")" = "$(served one "pool.uefi-x64.amd64.${STAMP}")" ] && pass "unchanged archives: the next release's pool tag is the published pool digest" || fail "pool.uefi-x64.amd64.${NEXT} is another digest"
+m="$(curl -sf -H "Accept: ${MT}" "${REG}/one/mica-boards/manifests/pool.uefi-x64.amd64.${STAMP}")"
 [ "$(jq -c '.annotations' <<<"${m}")" = '{"mica.source-repo":"mica-boards","mica.arch":"amd64"}' ] &&
-    [ "$(jq -r '.layers[0].annotations["mica.inputs"]' <<<"${m}")" = "$(cd "${CLONE}" && bash tools/deb/package-inputs.sh board@x64 amd64)" ] &&
+    [ "$(jq -r '.layers[0].annotations["mica.inputs"]' <<<"${m}")" = "$(cd "${CLONE}" && bash tools/deb/package-inputs.sh board@uefi-x64 amd64)" ] &&
     pass "a pool manifest carries only mica.source-repo and mica.arch, each layer its title and mica.inputs" || fail "pool annotations: $(jq -c '[.annotations, .layers[0].annotations]' <<<"${m}")"
-[ "$(bash tools/check-lock.sh lock "$(lock_of one "x64.${NEXT}")")" = valid ] && pass "the reusing release's lock is valid" || fail "reusing lock: $(bash tools/check-lock.sh lock "$(lock_of one "x64.${NEXT}")")"
+[ "$(bash tools/check-lock.sh lock "$(lock_of one "uefi-x64.${NEXT}")")" = valid ] && pass "the reusing release's lock is valid" || fail "reusing lock: $(bash tools/check-lock.sh lock "$(lock_of one "uefi-x64.${NEXT}")")"
 
 # 3. The next cx3576 release with another boot certificate rebuilds only its uboot.
 remember "cx3576.${STAMP}" "$(lock_of one "cx3576.${STAMP}")"
@@ -196,28 +196,28 @@ else fail "partial reuse: $(tail -n4 "${WORK}/one-cx3576.${NEXT}-components.log"
 
 # 4. Refusals (no previous release to reuse from).
 echo '[]' >"${RELEASES}/releases.json"
-curl -sf -H "Accept: ${MT}" "${REG}/one/mica-boards/manifests/kernel.x64.${STAMP}" | jq -c '.annotations["mica.arch"] = "other"' >"${WORK}/edited.json"
-git -C "${CLONE}" tag "x64.20260101-0200"
-curl -s -o /dev/null -X PUT -H "Content-Type: ${MT}" --data-binary "@${WORK}/edited.json" "${REG}/one/mica-boards/manifests/kernel.x64.20260101-0200"
-if run one "x64.20260101-0200" "${WORK}/two.log" tools/publish-components.sh; then fail "a component tag holding another digest was published over"
+curl -sf -H "Accept: ${MT}" "${REG}/one/mica-boards/manifests/kernel.uefi-x64.${STAMP}" | jq -c '.annotations["mica.arch"] = "other"' >"${WORK}/edited.json"
+git -C "${CLONE}" tag "uefi-x64.20260101-0200"
+curl -s -o /dev/null -X PUT -H "Content-Type: ${MT}" --data-binary "@${WORK}/edited.json" "${REG}/one/mica-boards/manifests/kernel.uefi-x64.20260101-0200"
+if run one "uefi-x64.20260101-0200" "${WORK}/two.log" tools/publish-components.sh; then fail "a component tag holding another digest was published over"
 elif says "${WORK}/two.log" "a published tag is never re-pointed"; then pass "a component tag holding another digest: refused"
 else fail "component tag with another digest: $(tail -n2 "${WORK}/two.log")"; fi
-curl -sf -H "Accept: ${MT}" "${REG}/one/mica-boards/manifests/pool.x64.amd64.${STAMP}" | jq -c '.annotations["mica.arch"] = "other"' >"${WORK}/pool-edited.json"
-curl -s -o /dev/null -X PUT -H "Content-Type: ${MT}" --data-binary "@${WORK}/pool-edited.json" "${REG}/one/mica-boards/manifests/pool.x64.amd64.20260101-0200"
-if run one "x64.20260101-0200" "${WORK}/two-pool.log" tools/deb/publish.sh; then fail "a pool tag holding another digest was published over"
+curl -sf -H "Accept: ${MT}" "${REG}/one/mica-boards/manifests/pool.uefi-x64.amd64.${STAMP}" | jq -c '.annotations["mica.arch"] = "other"' >"${WORK}/pool-edited.json"
+curl -s -o /dev/null -X PUT -H "Content-Type: ${MT}" --data-binary "@${WORK}/pool-edited.json" "${REG}/one/mica-boards/manifests/pool.uefi-x64.amd64.20260101-0200"
+if run one "uefi-x64.20260101-0200" "${WORK}/two-pool.log" tools/deb/publish.sh; then fail "a pool tag holding another digest was published over"
 elif says "${WORK}/two-pool.log" "a published tag is never re-pointed"; then pass "a pool tag holding another digest: refused"
 else fail "pool tag with another digest: $(tail -n2 "${WORK}/two-pool.log")"; fi
-git -C "${CLONE}" tag "x64.20260101-0300"
-rm "${CLONE}/_out/x64/kernel/config"
-if run three "x64.20260101-0300" "${WORK}/three.log" tools/publish-components.sh; then fail "a kernel component missing a listed file was published"
+git -C "${CLONE}" tag "uefi-x64.20260101-0300"
+rm "${CLONE}/_out/uefi-x64/kernel/config"
+if run three "uefi-x64.20260101-0300" "${WORK}/three.log" tools/publish-components.sh; then fail "a kernel component missing a listed file was published"
 elif says "${WORK}/three.log" "missing kernel/config"; then pass "a component without a file its outputs.tsv lists: refused"
 else fail "missing component file: $(tail -n2 "${WORK}/three.log")"; fi
-rm "${CLONE}"/_out/debs/amd64/pool/mica-board-x64_*.deb
-if run three "x64.20260101-0300" "${WORK}/three-pool.log" tools/deb/publish.sh; then fail "a pool without a listed archive was published"
-elif says "${WORK}/three-pool.log" "exactly one mica-board-x64 archive"; then pass "a pool without an archive its outputs.tsv lists: refused"
+rm "${CLONE}"/_out/debs/amd64/pool/mica-board-uefi-x64_*.deb
+if run three "uefi-x64.20260101-0300" "${WORK}/three-pool.log" tools/deb/publish.sh; then fail "a pool without a listed archive was published"
+elif says "${WORK}/three-pool.log" "exactly one mica-board-uefi-x64 archive"; then pass "a pool without an archive its outputs.tsv lists: refused"
 else fail "pool without a listed archive: $(tail -n2 "${WORK}/three-pool.log")"; fi
-rm -f "${WORK}/rows-one-x64.${NEXT}/board.tsv"
-if run one "x64.${NEXT}" "${WORK}/noboard.log" "tools/release-lock.sh write"; then fail "a lock was written without its board rows"
+rm -f "${WORK}/rows-one-uefi-x64.${NEXT}/board.tsv"
+if run one "uefi-x64.${NEXT}" "${WORK}/noboard.log" "tools/release-lock.sh write"; then fail "a lock was written without its board rows"
 elif says "${WORK}/noboard.log" "board.tsv does not exist"; then pass "a lock without the board rows: refused"
 else fail "lock without board rows: $(tail -n2 "${WORK}/noboard.log")"; fi
 

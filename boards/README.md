@@ -86,7 +86,7 @@ kernel command line, written for both profiles (mica docs decision
   or run an unsigned binary; the same U-Boot serves both profiles. Also not
   covered: verification of U-Boot itself by the SoC boot ROM, which this
   repository does not enable or assert.
-- **UEFI boards (x64, virt-arm64).** The kernel has no built-in command line
+- **UEFI boards (uefi-x64, uefi-arm64).** The kernel has no built-in command line
   (`CONFIG_CMDLINE=""`) and the kernel component carries one `kernel/`. The assembly signs
   the UKI with `.cmdline` = `BOARD_CMDLINE_ARGS` + the profile token; whether a
   modified UKI is refused depends on UEFI Secure Boot, which is the assembly's
@@ -109,8 +109,8 @@ common/
   package/   fstab.in and copyright, the board package render and copyright fallback (the producers' `common` context)
 ```
 
-Each board's copy of its build is its own: the two UEFI boards (x64,
-virt-arm64) carry the same kernel Dockerfile today, and no check holds the
+Each board's copy of its build is its own: the two UEFI boards (uefi-x64,
+uefi-arm64) carry the same kernel Dockerfile today, and no check holds the
 copies identical -- a change to one board's build is that board's change.
 The prefix stage of every kernel and U-Boot Dockerfile (`source`, the UEFI
 `src`) holds only the toolchain and the upstream source; CI caches that stage
