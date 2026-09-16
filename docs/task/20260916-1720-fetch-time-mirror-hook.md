@@ -76,7 +76,10 @@ keeps going to its pinned URL. The mirror holds the bytes if that changes.
 `boards/s905x5m/Makefile` carries `MIRROR_ARG`, and that file is in the
 bluetooth producer's `PREPARE_INPUTS`, so `mica-s905x5m-bluetooth` is
 `0.1.0-6`. Measured against `b30b26b`: it is again the only producer that
-moved.
+moved. This is the declared cost of the decision recorded in
+[20260916-1643](20260916-1643-s905x5m-packer-without-i386.md) -- one bump on
+one package per board-Makefile edit, accepted over the risk of an
+under-declared input -- and not a reason to revisit it.
 
 ## Open with mica-res
 

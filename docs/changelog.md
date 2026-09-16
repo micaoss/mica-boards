@@ -14,7 +14,10 @@ cost one three-second connect. `tests/mirror-hook-test.sh` (25 assertions,
 `make check`) serves the contract locally, and a real `uefi-x64` source stage
 with the mirror set but unreachable fell back after 3.178 s.
 `mica-s905x5m-bluetooth` is `0.1.0-6`: the board Makefile carries the mirror
-argument and that file is in its `PREPARE_INPUTS`.
+argument and that file is in its `PREPARE_INPUTS`. Decided the same day and
+recorded in the task: `PREPARE_INPUTS` is not narrowed. One bump on one package
+per board-Makefile edit is the accepted cost; an under-declared input would be
+a package shipped stale and found by a device rather than by CI.
 
 ## 2026-09-16 [progress]
 
