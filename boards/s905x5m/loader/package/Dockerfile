@@ -2,7 +2,14 @@
 # Package the section-3 s905x5m U-Boot artifacts as an Amlogic v2 container.
 
 ARG MICA_IMAGE_DEBIAN_TRIXIE
-FROM --platform=linux/386 ${MICA_IMAGE_DEBIAN_TRIXIE} AS packer
+# linux/amd64 and not linux/386: the pinned packer is a statically linked i386
+# binary, so an x86-64 kernel runs it through IA-32 emulation with no 32-bit
+# userland anywhere. The uboot component is x86-64 by contract (tools/inputs.sh
+# records `builder amd64`, build.yml pins the job to an x86-64 runner), so on
+# CI this stage is native; on any other builder it is emulated as the i386
+# stage was. Measured: the same inputs pack to the same update.img here as in
+# the i386 stage (docs/task/20260916-1643-s905x5m-packer-without-i386.md).
+FROM --platform=linux/amd64 ${MICA_IMAGE_DEBIAN_TRIXIE} AS packer
 
 ARG PACKER_URL
 ARG PACKER_SHA256

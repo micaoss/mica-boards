@@ -59,3 +59,13 @@ and diff the two `_out/s905x5m/uboot/` trees (the build is about 2.5 minutes
 locally), then bisect the difference with `strings`/`cmp` as patch 0018 was
 found. A byte-identity check like `make <board>-kernel-profile-test` should
 come out of it, so the answer is kept.
+
+## Update 2026-09-16 16:43: update.img is confirmed downstream, not a defect
+
+The packer was measured directly (see
+[20260916-1643](20260916-1643-s905x5m-packer-without-i386.md)): the pinned
+`aml_image_v2_packer` is deterministic, and packing the published
+`20260916-0857` U-Boot artifacts with this repository's `config/` and `blobs/`
+reproduces that release's `update.img` byte for byte. So `update.img` differs
+between builds only because `u-boot.bin.signed` and `u-boot.bin.sd.bin.signed`
+do, and the open question stays exactly where it was: the two signed binaries.

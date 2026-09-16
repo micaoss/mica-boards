@@ -122,7 +122,7 @@ uboot-package: uboot-package-test
 	IMG="$$(bash $(FROM_SH) $(DEBIAN_ARG))"; \
 	PACKER_URL="$$($(PIN) source s905x5m-aml-image-v2-packer all url)"; \
 	PACKER_SHA256="$$($(PIN) source s905x5m-aml-image-v2-packer all sha256)"; \
-	docker buildx build --label ai-agent=true -t ai-agent/mica-s905x5m-recovery --platform linux/386 --target bootloader-artifact \
+	docker buildx build --label ai-agent=true -t ai-agent/mica-s905x5m-recovery --platform linux/amd64 --target bootloader-artifact \
 		--build-arg "PACKER_URL=$$PACKER_URL" --build-arg "PACKER_SHA256=$$PACKER_SHA256" \
 		--build-context uboot-artifacts=$(BSP_OUT)/uboot \
 		-f loader/package/Dockerfile $$IMG \
