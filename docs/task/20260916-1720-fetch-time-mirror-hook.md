@@ -64,11 +64,15 @@ keeps going to its pinned URL. The mirror holds the bytes if that changes.
   (the new `--tag` path, 62.8 s) and the `s905x5m` U-Boot `source` stage, which
   fetches the three vendor toolchains through `fetch-archive.sh` and the U-Boot
   tree through `fetch-source.sh`.
-- The caveat the contract warns about, in a real builder: `res.micaos.dev` does
-  not answer from this workstation (DNS resolves to `2a06:98c1:3120::5`, TCP
-  443 times out). With `MICA_MIRROR=https://res.micaos.dev` the `uefi-x64`
-  source stage printed `uefi-x64-kernel f717995cb7dc is not mirrored` after
-  3.178 s and finished normally. A mirror nobody can reach costs one connect
+- The caveat the contract warns about, in a real builder. Scope first, because
+  the measurement means nothing without it: what cannot reach `res.micaos.dev`
+  is **container egress on this build host** -- the agent container this was
+  run from. The mirror answers from GitHub runners (mica-res pulls from it by
+  digest on a runner on every sync) and from the user's own machine. From this
+  container DNS resolves to `2a06:98c1:3120::5` and TCP 443 times out after
+  3.8 s. With `MICA_MIRROR=https://res.micaos.dev` the `uefi-x64` source stage
+  printed `uefi-x64-kernel f717995cb7dc is not mirrored` after 3.178 s and
+  finished normally: a mirror this network cannot reach costs one connect
   timeout per object and changes nothing else.
 
 ## Cost
@@ -81,11 +85,11 @@ moved. This is the declared cost of the decision recorded in
 one package per board-Makefile edit, accepted over the risk of an
 under-declared input -- and not a reason to revisit it.
 
-## Open with mica-res
+## The shared UEFI pack, answered by mica-res
 
 `uefi-x64-kernel` and `uefi-arm64-kernel` pin the same linux-stable commit and
-the bucket holds one copy. This implementation asks for its own row name, so if
-only one of the two names is a manifest key, the other board falls back to
-cloning -- correct, but it loses the mirror. The CI logs of the first run with
-the variable set will say which, because every fetch prints whether it was
-mirrored.
+the bucket holds the pack once -- answered by mica-res on 2026-09-16: the one
+object carries both readable names and both resolve, with a distinct manifest
+per row, so asking for our own row name is correct and neither board loses the
+mirror. That is why the object count is 44 and not 49: 13 manifests and 31
+chunks, the shared five-chunk pack stored once.

@@ -12,7 +12,8 @@ A lock URL is never rewritten -- it is in the component inputs hash -- so
 again; a 404, a refused connection and a timeout all mean "not mirrored" and
 cost one three-second connect. `tests/mirror-hook-test.sh` (25 assertions,
 `make check`) serves the contract locally, and a real `uefi-x64` source stage
-with the mirror set but unreachable fell back after 3.178 s.
+with the mirror set but unreachable *from this build host's container egress*
+-- it answers from GitHub runners -- fell back after 3.178 s.
 `mica-s905x5m-bluetooth` is `0.1.0-6`: the board Makefile carries the mirror
 argument and that file is in its `PREPARE_INPUTS`. Decided the same day and
 recorded in the task: `PREPARE_INPUTS` is not narrowed. One bump on one package
