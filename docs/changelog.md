@@ -2,6 +2,19 @@
 
 ## 2026-09-16 [progress]
 
+`mica-s905x5m-bluetooth` is `0.1.0-4` (epoch 1789545600): the bsp switch edited
+`boards/s905x5m/Makefile`, which that producer declares in `PREPARE_INPUTS`, so its
+inputs moved while its version did not and the guard refused it in CI. Measured
+against the published pool of `s905x5m.20260916-0558`, it is the only producer of
+any board whose inputs the switch moved; the other seven packages of that board
+rebuild byte-identical under the bsp toolchain, as do cx3576's four. Third time in
+one day that the version guard has caught an input change a human would have
+shipped (the `tools/deb/producers.sh` pipe-hygiene edit, mica-core's `mica-apid`
+after a lint edit, and this Makefile edit reaching a package through
+`PREPARE_INPUTS`).
+
+## 2026-09-16 [progress]
+
 The kernel, U-Boot and loader builders build FROM the mica-build-env `bsp` image
 (release `20260916-0735`, pinned by digest in `locks/mica-build-env.lock`) instead
 of installing a toolchain from the Ubuntu archive snapshot: no build of this
