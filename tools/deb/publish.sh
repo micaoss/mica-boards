@@ -15,7 +15,7 @@
 # are the published ones (tools/deb/version-guard.sh holds an unchanged version
 # to its published bytes) is the published manifest under a new tag.
 #
-# The release is the tag <board>/<YYYYMMDD-HHMM> HEAD carries (MICA_RELEASE_TAG
+# The release is the tag <board>.<YYYYMMDD-HHMM> HEAD carries (MICA_RELEASE_TAG
 # names it); an `all` archive the board lists is a layer of its pool. Refused: a
 # checkout that is not a clean release, a listed package without exactly one
 # archive, an archive not at its producer's declared version, archives from

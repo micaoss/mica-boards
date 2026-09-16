@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Publish the release's board's components as OCI artifacts.
 #
-#   bash tools/publish-components.sh     the board of the release tag <board>/<YYYYMMDD-HHMM> HEAD carries
+#   bash tools/publish-components.sh     the board of the release tag <board>.<YYYYMMDD-HHMM> HEAD carries
 #
 #   reads   _out/<board>/ and boards/<board>/ (tools/component.sh stages each component),
 #           the board's latest published release (tools/reuse.sh)

@@ -9,8 +9,8 @@
 #
 #   reads   <rows>/pool.tsv, <rows>/package.tsv, <rows>/board.tsv   (tools/deb/registry.sh LOCK_ROWS)
 #
-# A release is one board's: the tag <board>/<YYYYMMDD-HHMM>. The lock: the release
-# row (release mica-boards <board>/<YYYYMMDD-HHMM> <commit>), the board's pool row
+# A release is one board's: the tag <board>.<YYYYMMDD-HHMM>. The lock: the release
+# row (release mica-boards <board>.<YYYYMMDD-HHMM> <commit>), the board's pool row
 # for its architecture, a package row per archive its outputs.tsv lists, and a
 # board row per component artifact (board <board> <component> <arch> <reference>:
 # board, kernel, and uboot and firmware where it has them); every reference names
@@ -71,7 +71,7 @@ attach() {
     [[ "${slug}" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]] || die "origin is not a GitHub repository"
     work="$(mktemp -d)"
     trap 'rm -rf "${work}"' RETURN
-    # The tag carries a '/': the API takes it encoded, the download URL as it is.
+    # The tag is <board>.<YYYYMMDD-HHMM>; @uri leaves it as it is and encodes anything a tag should not hold.
     gh api "repos/${slug}/releases/tags/$(jq -rn --arg t "${TAG}" '$t | @uri')" >"${work}/release.json" || die "there is no published release ${TAG} in ${slug}"
     [ "$(jq -r .draft "${work}/release.json")" = false ] || die "release ${TAG} of ${slug} is a draft"
     [ "$(git ls-remote --tags "https://github.com/${slug}.git" "refs/tags/${TAG}" "refs/tags/${TAG}^{}" | awk 'END { print $1 }')" = "${COMMIT}" ] ||

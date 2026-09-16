@@ -6,7 +6,7 @@
 #
 #   bash tools/reuse.sh <board> <component> <inputs sha256> [<release tag to skip>]
 #
-# The latest release is the highest <board>/<YYYYMMDD-HHMM> tag with a
+# The latest release is the highest <board>.<YYYYMMDD-HHMM> tag with a
 # mica-boards.lock asset (the one being published is skipped); its lock names
 # the component's digest in its `board <board> <component> <arch> <reference>` row.
 set -euo pipefail
@@ -36,7 +36,7 @@ auth=()
 token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
 case "${LIST_URL}" in https://api.github.com/*) [ -z "${token}" ] || auth=(-H "Authorization: Bearer ${token}") ;; esac
 curl -fsSL "${auth[@]}" "${LIST_URL}" -o "${WORK}/releases.json" || die "listing the releases of ${SLUG} failed"
-latest="$(jq -r --arg b "${BOARD}/" --arg skip "${SKIP}" '[.[] | select(.draft == false and (.tag_name | startswith($b)) and .tag_name != $skip
+latest="$(jq -r --arg b "${BOARD}." --arg skip "${SKIP}" '[.[] | select(.draft == false and (.tag_name | startswith($b)) and .tag_name != $skip
     and ([.assets[].name] | index("mica-boards.lock")))] | map(.tag_name) | sort | last // empty' "${WORK}/releases.json")"
 [ -n "${latest}" ] || exit 0
 curl -fsSL "${DOWNLOAD}/${latest}/mica-boards.lock" -o "${WORK}/lock" || die "downloading mica-boards.lock of ${latest} failed"

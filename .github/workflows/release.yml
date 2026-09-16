@@ -1,12 +1,12 @@
 name: release
 # A release is one board's, cut on GitHub with `gh release create
-# <board>/<YYYYMMDD-HHMM> --target <commit of main>`. This workflow builds that
+# <board>.<YYYYMMDD-HHMM> --target <commit of main>`. This workflow builds that
 # board alone at the tag (build.yml with the board; a component whose inputs are
 # those of the board's latest release is not built), then publishes its pool as
 # ghcr.io/micaoss/mica-boards:pool.<board>.<arch>.<YYYYMMDD-HHMM> and its
 # components as <component>.<board>.<YYYYMMDD-HHMM> (a reused component by its
 # published digest), reads them back anonymously, and last attaches
-# mica-boards.lock (release mica-boards <board>/<YYYYMMDD-HHMM>) and SHA256SUMS
+# mica-boards.lock (release mica-boards <board>.<YYYYMMDD-HHMM>) and SHA256SUMS
 # listing only the lock (mica:docs/design/release-lock.md). Other boards are not
 # rebuilt or republished.
 on:
@@ -29,7 +29,9 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
-          [[ "${TAG}" =~ ^([a-z0-9][a-z0-9-]*)/([0-9]{8}-[0-9]{4})$ ]] || { echo "error: ${TAG} is not a release tag <board>/YYYYMMDD-HHMM" >&2; exit 1; }
+          # <board>.<YYYYMMDD-HHMM>: a board name carries no dot and a stamp carries none,
+          # so the scope is everything before the dot (mica:docs/design/release-lock.md 1.0).
+          [[ "${TAG}" =~ ^([a-z0-9][a-z0-9-]*)\.([0-9]{8}-[0-9]{4})$ ]] || { echo "error: ${TAG} is not a release tag <board>.YYYYMMDD-HHMM" >&2; exit 1; }
           stamp="${BASH_REMATCH[2]}"
           [ "$(date -u -d "${stamp:0:4}-${stamp:4:2}-${stamp:6:2} ${stamp:9:2}:${stamp:11:2}" +%Y%m%d-%H%M 2>/dev/null || true)" = "${stamp}" ] || { echo "error: ${stamp} is not a UTC time YYYYMMDD-HHMM" >&2; exit 1; }
           bash tools/boards.sh arch "${BASH_REMATCH[1]}" >/dev/null

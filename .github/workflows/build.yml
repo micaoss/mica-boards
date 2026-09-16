@@ -53,7 +53,7 @@ on:
         type: string
         default: ""
       release:
-        description: the release tag <board>/<YYYYMMDD-HHMM> being built, whose reusable components are not built
+        description: the release tag <board>.<YYYYMMDD-HHMM> being built, whose reusable components are not built
         type: string
         default: ""
     outputs:

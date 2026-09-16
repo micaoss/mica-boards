@@ -116,24 +116,28 @@ put_manifest() { curl -sf -o /dev/null -X PUT -H "Content-Type: ${MT}" --data-bi
 lock_for() { # <out> <pool tag> <manifest file> <version> <sha256>
     printf '# mica-lock v1\npool\tamd64\tghcr.io/micaoss/mica-boards:%s@sha256:%s\npackage\tmica-board-x64\tamd64\t%s\t%s\n' "$2" "$(sha256sum "$3" | cut -d' ' -f1)" "$4" "$5" >"$1"
 }
-A=x64/20260101-0000 B=x64/20260101-0100 C=x64/20260101-0200
+A=x64.20260101-0000 B=x64.20260101-0100 C=x64.20260101-0200
+
+# The test owns the versions it asserts, whatever the tree declares today.
+declare_version 0.1.0-1 1789430400
+commit "the version this test starts from"
 
 # 1. No published release: everything is built and published, its layer carries the inputs.
 echo '[]' >"${RELEASES}/releases.json"
-if release "${A}" && says "${WORK}/x64-20260101-0000-guard.log" "has no published release"; then pass "no previous release: built and published"
-else fail "first release: $(tail -n3 "${WORK}"/x64-20260101-0000-*.log)"; fi
+if release "${A}" && says "${WORK}/x64.20260101-0000-guard.log" "has no published release"; then pass "no previous release: built and published"
+else fail "first release: $(tail -n3 "${WORK}"/x64.20260101-0000-*.log)"; fi
 A_POOL="$(served pool.x64.amd64.20260101-0000)"
 case "$(ls "${POOL}")" in mica-board-x64_0.1.0-1_amd64.deb) pass "the archive carries the declared version" ;; *) fail "archive name: $(ls "${POOL}")" ;; esac
 [ -z "$(python3 "${CLONE}/tools/deb/control-fields.py" "${POOL}"/*.deb Mica-Source-Commit)" ] && pass "no Mica-Source-Commit control field" || fail "the archive carries Mica-Source-Commit"
 [ -n "$(inputs)" ] && [ "$(curl -sf -H "Accept: ${MT}" "${REG}/manifests/pool.x64.amd64.20260101-0000" | jq -r '.layers[0].annotations["mica.inputs"]')" = "$(inputs)" ] &&
     pass "the pool layer carries the producer's inputs as mica.inputs" || fail "layer mica.inputs"
-A_LOCK="${WORK}/x64-20260101-0000.lock"
+A_LOCK="${WORK}/x64.20260101-0000.lock"
 
 # 2. A previous release from before the rules (no mica.inputs) is not compared.
 curl -sf -H "Accept: ${MT}" "${REG}/manifests/pool.x64.amd64.20260101-0000" | jq -c 'del(.layers[].annotations["mica.inputs"])' >"${WORK}/old.json"
 put_manifest "${WORK}/old.json" pool.x64.amd64.20251231-0000
 lock_for "${WORK}/old.lock" pool.x64.amd64.20251231-0000 "${WORK}/old.json" 0.1.0+git0123456789ab-1 "$(awk -F'\t' '$1 == "package" { print $5 }' "${A_LOCK}")"
-published x64/20251231-0000 "${WORK}/old.lock"
+published x64.20251231-0000 "${WORK}/old.lock"
 pool "${WORK}/old-pool.log"
 if guard "${WORK}/old.log" && says "${WORK}/old.log" "predates the package-version rules"; then pass "a release from before the rules: nothing compared, a lower version accepted"
 else fail "pre-rules release: $(tail -n2 "${WORK}/old.log")"; fi
@@ -145,10 +149,10 @@ commit "outside the inputs"
 pool "${WORK}/ci-pool.log"
 if guard "${WORK}/ci.log" && says "${WORK}/ci.log" "1 unchanged, 0 bumped, 0 new"; then pass "CI: an unchanged version is the published archive"
 else fail "CI unchanged: $(tail -n3 "${WORK}/ci.log")"; fi
-if release "${B}" && says "${WORK}/x64-20260101-0100-guard.log" "1 unchanged"; then pass "release: an unchanged version is the published archive"
-else fail "release unchanged: $(tail -n5 "${WORK}"/x64-20260101-0100-*.log)"; fi
+if release "${B}" && says "${WORK}/x64.20260101-0100-guard.log" "1 unchanged"; then pass "release: an unchanged version is the published archive"
+else fail "release unchanged: $(tail -n5 "${WORK}"/x64.20260101-0100-*.log)"; fi
 [ "$(served pool.x64.amd64.20260101-0100)" = "${A_POOL}" ] && pass "nothing bumped: the new pool tag names the published pool digest" || fail "pool digest $(served pool.x64.amd64.20260101-0100) against ${A_POOL}"
-published "${B}" "${WORK}/x64-20260101-0100.lock"
+published "${B}" "${WORK}/x64.20260101-0100.lock"
 
 # 4. A changed input without a bump: refused in CI and at release.
 printf '# a changed input\n' >>"${CLONE}/producers/board/producer.env"
@@ -159,10 +163,10 @@ refused "inputs of mica-board-x64 changed without a version bump" "release: chan
 # 5. The bump: built, published, a new pool.
 declare_version 0.1.0-2 1789516800
 commit "mica-board-x64 0.1.0-2"
-if release "${C}" && says "${WORK}/x64-20260101-0200-guard.log" "mica-board-x64 0.1.0-1 -> 0.1.0-2: bumped"; then pass "a bumped version is built and published"
-else fail "bump: $(tail -n5 "${WORK}"/x64-20260101-0200-*.log)"; fi
+if release "${C}" && says "${WORK}/x64.20260101-0200-guard.log" "mica-board-x64 0.1.0-1 -> 0.1.0-2: bumped"; then pass "a bumped version is built and published"
+else fail "bump: $(tail -n5 "${WORK}"/x64.20260101-0200-*.log)"; fi
 [ "$(served pool.x64.amd64.20260101-0200)" != "${A_POOL}" ] && pass "a bumped package: a new pool digest" || fail "the pool digest did not change with a bump"
-C_LOCK="${WORK}/x64-20260101-0200.lock"
+C_LOCK="${WORK}/x64.20260101-0200.lock"
 published "${C}" "${C_LOCK}"
 
 # 6. A lower version than the latest release: refused.
@@ -193,7 +197,7 @@ curl -sf -H "Accept: ${MT}" "${REG}/manifests/pool.x64.amd64.20260101-0200" |
     jq -c --arg d "sha256:${M_SHA}" --argjson s "$(stat -c %s "${WORK}/moved.deb")" '.layers[0].digest = $d | .layers[0].size = $s' >"${WORK}/moved.json"
 put_manifest "${WORK}/moved.json" pool.x64.amd64.20260101-0250
 lock_for "${WORK}/moved.lock" pool.x64.amd64.20260101-0250 "${WORK}/moved.json" 0.1.0-2 "${M_SHA}"
-published x64/20260101-0250 "${WORK}/moved.lock"
+published x64.20260101-0250 "${WORK}/moved.lock"
 refused "is not the published archive" "an unchanged version whose bytes moved"
 
 # 8. A previous archive that is not its lock row's, or missing: refused.

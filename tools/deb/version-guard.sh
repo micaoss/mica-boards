@@ -3,10 +3,10 @@
 # latest published release (mica:docs/decisions/2026-09-15-package-versions.md
 # R5). Read-only; run after `make pool`, in CI and in a board release's build.
 #
-#   bash tools/deb/version-guard.sh --board <board> [--release <board>/<YYYYMMDD-HHMM>]
+#   bash tools/deb/version-guard.sh --board <board> [--release <board>.<YYYYMMDD-HHMM>]
 #
 #   reads   _out/debs/<arch>/pool/, the archives boards/boards.tsv lists for the board; the latest
-#           <board>/* release other than --release: its mica-boards.lock and its pool manifest (anonymously)
+#           <board>.* release other than --release: its mica-boards.lock and its pool manifest (anonymously)
 #
 # For every package of the board, against that release's package row:
 #   the same version   its producer's inputs hash (tools/deb/package-inputs.sh) must equal the published
@@ -28,7 +28,7 @@ REPO_ROOT="$(cd "${HERE}/../.." && pwd)"
 # shellcheck disable=SC1091
 . "${HERE}/registry.sh"
 die() { echo "version-guard.sh: error: $*" >&2; exit 1; }
-usage="usage: bash tools/deb/version-guard.sh --board <board> [--release <board>/<YYYYMMDD-HHMM>]"
+usage="usage: bash tools/deb/version-guard.sh --board <board> [--release <board>.<YYYYMMDD-HHMM>]"
 
 BOARD="" RELEASE=""
 while [ "$#" -gt 0 ]; do
@@ -39,7 +39,7 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 [ -n "${BOARD}" ] || die "${usage}"
-[ -z "${RELEASE}" ] || [ "${RELEASE%%/*}" = "${BOARD}" ] || die "--release ${RELEASE} is not a release of ${BOARD}"
+[ -z "${RELEASE}" ] || [ "${RELEASE%.*}" = "${BOARD}" ] || die "--release ${RELEASE} is not a release of ${BOARD}"
 cd "${REPO_ROOT}"
 ARCH="$(bash tools/boards.sh arch "${BOARD}")"
 POOL="_out/debs/${ARCH}/pool"
@@ -63,7 +63,7 @@ auth=()
 token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
 case "${LIST_URL}" in https://api.github.com/*) [ -z "${token}" ] || auth=(-H "Authorization: Bearer ${token}") ;; esac
 curl -fsSL "${auth[@]}" "${LIST_URL}" -o "${WORK}/releases.json" || die "listing the releases of ${SLUG} failed"
-previous="$(jq -r --arg b "${BOARD}/" --arg skip "${RELEASE}" '[.[] | select(.draft == false and (.tag_name | startswith($b)) and .tag_name != $skip
+previous="$(jq -r --arg b "${BOARD}." --arg skip "${RELEASE}" '[.[] | select(.draft == false and (.tag_name | startswith($b)) and .tag_name != $skip
     and ([.assets[].name] | index("mica-boards.lock")))] | map(.tag_name) | sort | last // empty' "${WORK}/releases.json")"
 [ -n "${previous}" ] || { echo "version-guard.sh: ${BOARD} has no published release; every archive is built"; exit 0; }
 curl -fsSL "${DOWNLOAD}/${previous}/mica-boards.lock" -o "${WORK}/lock" || die "downloading mica-boards.lock of ${previous} failed"

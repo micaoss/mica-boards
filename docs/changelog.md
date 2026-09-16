@@ -2,6 +2,20 @@
 
 ## 2026-09-16 [progress]
 
+Board release tags are `<board>.<YYYYMMDD-HHMM>` (user decision 2026-09-16, mica
+`docs/decisions/2026-09-16-scoped-tags-use-a-dot.md`; spec f742615). No
+compatibility form: `tools/check-lock.sh` splits a release row at its last dot, so
+a slash leaves the release out of form and is refused as `field-value`
+(`tests/vectors/lock/refused/release-slash.lock`). `tools/deb/registry.sh` matches
+and splits the tag on the dot, `release.yml`'s scope job parses it, and
+`tools/reuse.sh` and `tools/deb/version-guard.sh` resolve "the board's latest
+release" by the `<board>.` prefix. The spec vectors were re-copied at the dot form;
+`tests/publish-test.sh` and `tests/version-guard-test.sh` tag their fixtures with
+it, and the version-guard test now declares the version it asserts. Pins are
+unchanged (`RELEASE` and `SCOPE` stay separate fields).
+
+## 2026-09-16 [progress]
+
 Every producer's revision is bumped (epoch 1789516800): the pipe-hygiene commit
 edited `tools/deb/producers.sh`, which the package inputs hash covers as packaging
 tooling, so the version guard refused the unchanged versions in CI -- the guard

@@ -26,7 +26,7 @@ help:
 	@echo "  pool                every producer of every board, both architectures, indexed into _out/debs; POOL_BOARD=<board> that board's producers only"
 	@echo "  package-gate        the package gate over that pool"
 	@echo "  offline             the whole build of this clean checkout, nothing published: kernels, firmware, both gated pools, _out/boards/<board>/<component>/ trees with their inputs hashes (docker)"
-	@echo "  publish             the release's board: its pool and components into the mica-boards package (pool.<board>.<arch>.<YYYYMMDD-HHMM>, <component>.<board>.<YYYYMMDD-HHMM>, reusing unchanged components), read back anonymously, then mica-boards.lock and SHA256SUMS on the release <board>/<YYYYMMDD-HHMM> (CI, from a release checkout)"
+	@echo "  publish             the release's board: its pool and components into the mica-boards package (pool.<board>.<arch>.<YYYYMMDD-HHMM>, <component>.<board>.<YYYYMMDD-HHMM>, reusing unchanged components), read back anonymously, then mica-boards.lock and SHA256SUMS on the release <board>.<YYYYMMDD-HHMM> (CI, from a release checkout)"
 	@echo "  trust-stage-test    common/trust/stage.sh validates and stages a public certificate bundle, and refuses anything else (docker)"
 	@echo "  uboot-env-test      the FIT loaders' environment entry decodes the assembly's layout and round-trips (docker)"
 	@echo "  ci-outputs-test     tools/ci-outputs.sh: one or several workflow artifacts unpack the same, a missing one is refused"

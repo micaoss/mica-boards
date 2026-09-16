@@ -50,10 +50,10 @@ registry_token() {
 }
 
 # The release this checkout is: a clean tree whose HEAD carries the board's
-# release tag <board>/<YYYYMMDD-HHMM> (created on GitHub by `gh release create`);
+# release tag <board>.<YYYYMMDD-HHMM> (created on GitHub by `gh release create`);
 # a release is one board's. MICA_RELEASE_TAG (the release event's tag) names it,
 # and must when HEAD carries several; the board must be in boards/boards.tsv.
-# Sets RELEASE_LABEL (the tag), RELEASE_BOARD, RELEASE_STAMP (YYYYMMDD-HHMM),
+# Sets RELEASE_LABEL (the tag <board>.<YYYYMMDD-HHMM>), RELEASE_BOARD, RELEASE_STAMP,
 # RELEASE_COMMIT and RELEASE_CREATED (the commit date).
 release_load() {
     [ -z "$(git -C "${REGISTRY_REPO_ROOT}" status --porcelain)" ] || {
@@ -63,8 +63,8 @@ release_load() {
     RELEASE_COMMIT="$(git -C "${REGISTRY_REPO_ROOT}" rev-parse HEAD)"
     RELEASE_CREATED="$(git -C "${REGISTRY_REPO_ROOT}" show -s --format=%cI HEAD)"
     local tags
-    tags="$(git -C "${REGISTRY_REPO_ROOT}" tag --points-at HEAD | grep -E '^[a-z0-9][a-z0-9-]*/[0-9]{8}-[0-9]{4}$' || true)"
-    [ -n "${tags}" ] || { echo "error: HEAD ${RELEASE_COMMIT:0:12} carries no release tag <board>/YYYYMMDD-HHMM; publishing runs only for a release (gh release create <board>/<YYYYMMDD-HHMM> --target <commit>)" >&2; return 1; }
+    tags="$(git -C "${REGISTRY_REPO_ROOT}" tag --points-at HEAD | grep -E '^[a-z0-9][a-z0-9-]*\.[0-9]{8}-[0-9]{4}$' || true)"
+    [ -n "${tags}" ] || { echo "error: HEAD ${RELEASE_COMMIT:0:12} carries no release tag <board>.YYYYMMDD-HHMM; publishing runs only for a release (gh release create <board>.<YYYYMMDD-HHMM> --target <commit>)" >&2; return 1; }
     if [ -n "${MICA_RELEASE_TAG:-}" ]; then
         # A loop, not `printf | grep -q`: the reader exits at the first match and
         # the writer dies of SIGPIPE, which pipefail reports as a failed pipeline
@@ -80,8 +80,8 @@ release_load() {
         [ "$(printf '%s\n' "${tags}" | grep -c .)" = 1 ] || { echo "error: HEAD ${RELEASE_COMMIT:0:12} carries several release tags ($(printf '%s ' ${tags})); MICA_RELEASE_TAG names the one to publish" >&2; return 1; }
         RELEASE_LABEL="${tags}"
     fi
-    RELEASE_BOARD="${RELEASE_LABEL%/*}"
-    RELEASE_STAMP="${RELEASE_LABEL#*/}"
+    RELEASE_BOARD="${RELEASE_LABEL%.*}"
+    RELEASE_STAMP="${RELEASE_LABEL##*.}"
     bash "${REGISTRY_REPO_ROOT}/tools/boards.sh" arch "${RELEASE_BOARD}" >/dev/null || return 1
 }
 

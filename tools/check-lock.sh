@@ -16,7 +16,7 @@ export LC_ALL=C
 usage() { echo "usage: bash tools/check-lock.sh lock|upstream <file> | pins <dir> ci|local" >&2; exit 2; }
 refuse() { echo "refused $1"; exit 1; }
 
-# The repositories whose releases are scoped (<scope>/<YYYYMMDD-HHMM>): all of theirs, no other's.
+# The repositories whose releases are scoped (<scope>.<YYYYMMDD-HHMM>): all of theirs, no other's.
 SCOPED_REPOSITORIES=" mica-boards mica-build "
 
 # 4: every producer lock has one pin naming it and its release; upstream.lock has none.
@@ -73,7 +73,7 @@ if [ "${1-}" = pins ]; then
         bash "${BASH_SOURCE[0]}" lock "${lock}" >/dev/null 2>&1 || refuse lock-invalid
         IFS=$'\t' read -r _kind lock_repository lock_release _commit < <(grep -m1 '^release'$'\t' "${lock}")
         lock_scope=""
-        [[ "${lock_release}" != */* ]] || { lock_scope="${lock_release%/*}"; lock_release="${lock_release##*/}"; }
+        case "${lock_release}" in *.*) lock_scope="${lock_release%.*}"; lock_release="${lock_release##*.}" ;; esac
         [ "${lock_repository}" = "${PIN_REPOSITORY[${name}]}" ] || refuse lock-invalid
         [ "${lock_scope}" = "${PIN_SCOPE[${name}]}" ] || refuse scope-mismatch
         [ "${lock_release}" = "${PIN_RELEASE[${name}]}" ] || refuse release-mismatch
@@ -189,8 +189,10 @@ for row in ${ROWS[@]+"${ROWS[@]}"}; do [ "${row%%$'\t'*}" != release ] || releas
 
 split "${ROWS[0]}"
 REPOSITORY="${FIELDS[1]}" RELEASE="${FIELDS[2]}" SCOPE=""
-# A scoped repository's release is <scope>/<YYYYMMDD-HHMM> (or <scope>/offline).
-[[ "${RELEASE}" != */* ]] || { SCOPE="${RELEASE%/*}"; RELEASE="${RELEASE##*/}"; }
+# A scoped repository's release is <scope>.<YYYYMMDD-HHMM> (or <scope>.offline), split
+# at its last dot: a scope carries no dot, and a slash leaves the release out of
+# form, which is refused as field-value (mica:docs/design/release-lock.md 1.0).
+case "${RELEASE}" in *.*) SCOPE="${RELEASE%.*}"; RELEASE="${RELEASE##*.}" ;; esac
 [[ "${REPOSITORY}" =~ ^[a-z0-9][a-z0-9-]*$ ]] && { [[ "${RELEASE}" =~ ^[0-9]{8}-[0-9]{4}$ ]] || [ "${RELEASE}" = offline ]; } &&
     [[ "${FIELDS[3]}" =~ ^[0-9a-f]{40}$ ]] && { [ -z "${SCOPE}" ] || [[ "${SCOPE}" =~ ^[a-z0-9][a-z0-9-]*$ ]]; } || refuse field-value
 case "${SCOPED_REPOSITORIES}" in *" ${REPOSITORY} "*) [ -n "${SCOPE}" ] || refuse release-scope ;; *) [ -z "${SCOPE}" ] || refuse release-scope ;; esac

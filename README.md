@@ -28,13 +28,13 @@ make check                # lint, the board contract, the kernel-config floor, t
 ```
 
 A release is one board's, cut on GitHub with `gh release create
-<board>/<YYYYMMDD-HHMM> --target <commit of main>`; `release.yml` builds that
+<board>.<YYYYMMDD-HHMM> --target <commit of main>`; `release.yml` builds that
 board alone at the tag and publishes its pool as
 `pool.<board>.<arch>.<YYYYMMDD-HHMM>` and its components as
 `<component>.<board>.<YYYYMMDD-HHMM>` in `ghcr.io/micaoss/mica-boards` -- board
 (definition, manifests, outputs.tsv, trust certificate), kernel, and uboot and
 firmware where the board has them (`tools/component.sh`) -- then attaches
-`mica-boards.lock` (`release mica-boards <board>/<YYYYMMDD-HHMM> <commit>`, the
+`mica-boards.lock` (`release mica-boards <board>.<YYYYMMDD-HHMM> <commit>`, the
 board's pool and package rows and a `board <board> <component> <arch>
 <reference>` row per component) and `SHA256SUMS` listing only the lock. A
 component whose inputs hash (`tools/inputs.sh`, the `mica.inputs` annotation)
