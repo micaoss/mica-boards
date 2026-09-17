@@ -151,8 +151,8 @@ for b in uefi-x64 cx3576; do
     if release one "${tag}"; then pass "${tag}: pool, components and lock published"
     else fail "${tag}: $(tail -n3 "${WORK}/one-${b}.${STAMP}-pool.log" "${WORK}/one-${b}.${STAMP}-components.log" "${WORK}/one-${b}.${STAMP}-lock.log" 2>/dev/null)"; continue; fi
     [ "$(bash tools/check-lock.sh lock "${L}")" = valid ] && pass "${tag}: the lock passes tools/check-lock.sh" || fail "${tag}: the lock is $(bash tools/check-lock.sh lock "${L}")"
-    if [ -f /srv/ybolab/mica/mica/tools/docs/release-lock-check.py ]; then
-        [ "$(python3 /srv/ybolab/mica/mica/tools/docs/release-lock-check.py lock "${L}")" = valid ] && pass "${tag}: the lock passes the specification's reference checker" || fail "${tag}: reference checker: $(python3 /srv/ybolab/mica/mica/tools/docs/release-lock-check.py lock "${L}")"
+    if [ -f "${REPO_ROOT}/../mica/tools/docs/release-lock-check.py" ]; then
+        [ "$(python3 "${REPO_ROOT}/../mica/tools/docs/release-lock-check.py" lock "${L}")" = valid ] && pass "${tag}: the lock passes the specification's reference checker" || fail "${tag}: reference checker: $(python3 "${REPO_ROOT}/../mica/tools/docs/release-lock-check.py" lock "${L}")"
     fi
     [ "$(sed -n 2p "${L}")" = "$(printf 'release\tmica-boards\t%s\t%s' "${tag}" "${HEAD}")" ] && pass "${tag}: the release row" || fail "${tag}: release row $(sed -n 2p "${L}")"
     [ "$(grep '^pool' "${L}")" = "$(printf 'pool\t%s\tghcr.io/micaoss/mica-boards:pool.%s.%s.%s@%s' "${a}" "${b}" "${a}" "${STAMP}" "$(served one "pool.${b}.${a}.${STAMP}")")" ] && pass "${tag}: one pool row at the served digest" || fail "${tag}: pool rows $(grep '^pool' "${L}")"
