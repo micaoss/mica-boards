@@ -1444,7 +1444,7 @@ stage_display() {
     capf cmdline /proc/cmdline
     operator_detail D1 \
         "connect the named HDMI sink before power-on, photograph the connector/mode and observe the screen through the 180-second health window" \
-        "one centered YBO - Hub OS gradient logo remains visible with no normal login prompt"
+        "one centered Mica OS icon-and-wordmark gradient logo remains visible with no normal login prompt"
     operator_detail D2 \
         "with a named USB keyboard, use Alt+F2 and Ctrl+Alt+F2, authenticate on tty2, log out, and record tty1/tty2 unit state" \
         "both shortcuts reach ordinary authenticated tty2, no autologin occurs, and tty1 has no getty"

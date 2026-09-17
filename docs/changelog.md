@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-17 [progress]
+
+`boards/cx3576/flash/assets/splash.png` shows the **Mica OS** icon above its
+wordmark instead of the retired **YBO - Hub OS** text. mica-res's
+`mica/brand/logo/mica-os-icon-dark.svg` (360 px wide, at +656+184) and
+`mica-os-wordmark-dark.svg` (600 px wide, at +536+552) are rasterised with
+`rsvg-convert` and composited on a 1672x941 radial gradient from
+`rgb(6,76,95)` to black (radii 760x480) with ImageMagick, and saved as 8-bit
+truecolour without alpha or timestamps (`debian:trixie-slim`, `librsvg2-bin`,
+`imagemagick`). `mklogo.py` derives a 720x405 logo of 223 colours from it. The
+bench collector's expected-logo prompt names Mica OS, and `tests/publish-test.sh`
+finds the reference lock checker at `../mica` beside this checkout instead of
+the retired `/srv/ybolab` path.
+
 ## 2026-09-16 [progress]
 
 Every builder fetches through `common/scripts/fetch-archive.sh` and
