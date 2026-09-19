@@ -31,7 +31,7 @@ LOCK_BEFORE="$(sha256sum "${REPO_ROOT}/locks/upstream.lock" | cut -d' ' -f1)"
 
 # ---- the mirror and the vendor host, one server, two trees -----------------
 SITE="${T}/site"
-mkdir -p "${SITE}/blob" "${SITE}/d/upstream/git" "${SITE}/vendor"
+mkdir -p "${SITE}/blob" "${SITE}/upstream/git" "${SITE}/vendor"
 head -c 4096 /dev/urandom >"${T}/archive.bin"
 ARCHIVE_SHA="$(sha256sum "${T}/archive.bin" | cut -d' ' -f1)"
 cp "${T}/archive.bin" "${SITE}/vendor/toolchain.tar.xz"
@@ -67,7 +67,7 @@ printf '%s\n' "${COMMIT}" | git -C "${UP}" pack-objects --revs --stdout >"${T}/p
 PACK_SHA="$(sha256sum "${T}/pack" | cut -d' ' -f1)"
 PACK_SIZE="$(stat -c%s "${T}/pack")"
 NAME=test-kernel
-PREFIX="${SITE}/d/upstream/git/${NAME}"
+PREFIX="${SITE}/upstream/git/${NAME}"
 mkdir -p "${PREFIX}"
 split -n 2 -d -a 2 "${T}/pack" "${PREFIX}/${COMMIT}.pack."
 C0="${PREFIX}/${COMMIT}.pack.00"

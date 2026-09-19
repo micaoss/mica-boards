@@ -62,7 +62,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # The mirrored pack of one git row, into a fresh repository. 0: <DIR> is the
 # pinned commit. 1: nothing was written and the upstream fetch must run.
 mirror_pack() {
-    local prefix="d/upstream/git/${NAME}/${COMMIT}" manifest plan pack chunk want got i=0 count
+    local prefix="upstream/git/${NAME}/${COMMIT}" manifest plan pack chunk want got i=0 count
     [ -n "${NAME}" ] || return 1
     [ -n "$(mirror_base)" ] || return 1
     manifest="$(mktemp)"

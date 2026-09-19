@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-18 [progress]
+
+The git half of the mirror hook follows mica-res's rebuilt resource service:
+`common/scripts/fetch-source.sh` asks for `upstream/git/<name>/<commit>.json`
+and its `.pack.<NN>` chunks without the retired `d/` prefix;
+`res.micaos.dev` redirects them to the R2 download host and `mirror_get`
+follows. Archives are still looked up at `blob/<sha256[0:2]>/<sha256>`, which
+only `res.micaos.dev` answers, so `MICA_MIRROR` is unchanged.
+`tests/mirror-hook-test.sh` serves the new layout (25 assertions).
+
 ## 2026-09-17 [progress]
 
 `boards/cx3576/flash/assets/splash.png` shows the **Mica OS** icon above its

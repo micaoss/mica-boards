@@ -93,3 +93,14 @@ object carries both readable names and both resolve, with a distinct manifest
 per row, so asking for our own row name is correct and neither board loses the
 mirror. That is why the object count is 44 and not 49: 13 manifests and 31
 chunks, the shared five-chunk pack stored once.
+
+## 2026-09-18: the git pack path loses its `d/` prefix
+
+mica-res was rebuilt as the resource service (`mica-res:docs/modules/resource.md`):
+public files are served by R2 on `dl.res.micaos.dev` under their readable keys,
+and `res.micaos.dev/upstream/git/...` redirects there. The git half of the
+contract above is now `GET <mirror>/upstream/git/<name>/<commit>.{json,pack.<NN>}`;
+the archive half, `blob/<sha256[0:2]>/<sha256>`, is unchanged, so
+`MICA_MIRROR` stays `https://res.micaos.dev`. `mirror_get` already follows
+redirects. On the day of the change the rebuilt namespaces listed empty and
+both halves answered 404, which the hook treats as "not mirrored".
