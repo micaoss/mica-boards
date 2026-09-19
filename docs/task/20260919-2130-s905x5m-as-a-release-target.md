@@ -135,3 +135,27 @@ is the precedent this rests on. Opening a board for release means its images
 are built and published; the evidence document is the statement of what has and
 has not been tested, which is why it was written before the flag was flipped
 and not after.
+
+## The gate that would have caught it, added here
+
+`tests/board-contract-test.sh` now refuses a board with
+`BOARD_RELEASE_TARGET=1` and no `evidence.json`, and checks the document
+against the shape the assembly reads (`tests/evidence-schema.py`, mirroring
+`mica-build:build/src/release-manifest.ts`). The reason is the failure mode,
+not tidiness: the assembly validates at `--release assemble`, which runs after
+that product's archives and images are built, so without this gate the first
+s905x5m product build would have died after the expensive part. The check is a
+pre-check and says so; where it and the assembly disagree, the assembly wins.
+
+## The loader does not reach a device through an update, on any board
+
+Answered by `mica-build` on 2026-09-19 and corrected in
+[20260916-0620](20260916-0620-s905x5m-uboot-not-reproducible.md): archive kinds
+are computed over the root and kernel object families only, the deployment
+descriptor has no firmware member, and `cx3576.20260916-1653` published a root
+PARTIAL across a release in which its `uboot` component moved. So this board
+loses nothing on the releases that rebuild its loader -- not archive kinds, not
+partials. Two numbers are now in play and they measure different things:
+16.13 MiB is the COMPONENT bytes that differ when the loader rebuilds, and
+3.17 MiB is `u-boot.bin.signed` inside every published factory image. Neither
+is an update-archive cost; there is no update-archive cost.

@@ -79,9 +79,23 @@ publishes different bytes than the one before. That is not a defect in
 still reuses the published component by digest without rebuilding it. Only a
 release whose inputs moved -- a loader change, a new pinned toolchain image --
 pays it, and then the difference is expected and must not be chased as a reuse
-bug. It costs little today because s905x5m is not a release target in
-`mica-build`; on the day it becomes one, its update archives will always carry
-the loader.
+bug.
+
+**It costs nothing in an update archive, on this board or any other, and an
+earlier sentence here said otherwise.** Corrected on 2026-09-19 from
+`mica-build`'s code and its published archives: an archive kind is computed
+over the root and kernel object families only
+(`mica-build:build/src/component-archive.ts`), the deployment descriptor has no
+firmware member, and a parsed `MICAUPD1` holds exactly a signed descriptor,
+two roothash signatures, `boot.itb`, `support.img` and `rootfs.img`. The loader
+sits in `firmware/` beside the archive and enters the factory image only, so a
+moved loader cannot force a `full` archive and cannot suppress a partial --
+`cx3576.20260916-1653` published a root PARTIAL across a release in which its
+`uboot` component moved. What the rebuild costs is COMPONENT bytes, 16.13 MiB
+of the twelve files, on the releases whose loader inputs moved; it is not an
+update-archive cost. And the corollary is not a property of this board: no
+device on any board receives a new U-Boot through an update archive at all --
+firmware moves offline only.
 
 ## Method note: compare layer bytes, not manifest digests
 

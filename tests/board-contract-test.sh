@@ -192,6 +192,20 @@ for dir in boards/*/; do
     grep -q '^BOARD_PACKAGE_ENABLEMENT=[0-9]\+$' "boards/${board}/board.env" || fail "${board}: board.env declares no BOARD_PACKAGE_ENABLEMENT (how many units the board package enables; the gate holds it)"
     pass
     [ ! -e "boards/${board}/containers.env" ] || fail "boards/${board}/containers.env exists; that switch moved to the product"
+
+    # A release target owes an evidence document. The assembly reads it at
+    # `--release assemble`, which runs after that product's archives and images
+    # are built, so a board that publishes without one fails there rather than
+    # here -- after the expensive part.
+    if grep -q '^BOARD_RELEASE_TARGET=1$' "boards/${board}/board.env"; then
+        if [ ! -f "boards/${board}/evidence.json" ]; then
+            fail "boards/${board}/evidence.json is missing and BOARD_RELEASE_TARGET=1; the assembly's release manifest requires it and takes the product's bootAssurance from it"
+        elif out="$(python3 tests/evidence-schema.py "boards/${board}/evidence.json" "${board}" 2>&1)"; then
+            pass
+        else
+            fail "${out}"
+        fi
+    fi
 done
 [ "${boards}" -gt 0 ] || { echo "FAIL: no directory with a board.env; the loop above checked nothing" >&2; exit 1; }
 
