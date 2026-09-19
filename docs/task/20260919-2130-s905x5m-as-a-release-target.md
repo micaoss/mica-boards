@@ -159,3 +159,33 @@ partials. Two numbers are now in play and they measure different things:
 16.13 MiB is the COMPONENT bytes that differ when the loader rebuilds, and
 3.17 MiB is `u-boot.bin.signed` inside every published factory image. Neither
 is an update-archive cost; there is no update-archive cost.
+
+## Correction: the flip cost five packages, not one
+
+The measurement above -- one producer moved, so one bump -- was right about
+INPUTS and wrong about the cost, and CI run 35471981026 is where that showed:
+
+    FAIL: mica-s905x5m-wireless arm64: depends on the local package
+    mica-board-s905x5m as 'mica-board-s905x5m (= 0.1.0-2)', which is neither
+    unversioned nor that package's exact pool version (= 0.1.0-3)
+
+An inputs hash sees the bytes a producer reads; it cannot see a version
+written into a SIBLING producer's control template. Three of this board's
+control files pin a cross-producer dependency by literal version (the
+same-producer ones use `@VERSION@`), so bumping the board package forces:
+
+    mica-board-s905x5m            0.1.0-2 -> 0.1.0-3   the flag
+    mica-s905x5m-wireless   \
+    mica-s905x5m-wifi        >    0.1.0-3 -> 0.1.0-4   their control pins the board package
+    mica-bm201-front-panel  /
+    mica-s905x5m-bluetooth        0.1.0-6 -> 0.1.0-7   its control pins mica-s905x5m-wireless
+
+Five packages across three producers, epoch 1789855200 for all three. Verified
+locally before pushing again: `make pool POOL_BOARD=s905x5m POOL_ARCH=arm64`
+and `make package-gate --board s905x5m --arch arm64`, 64/64 checks.
+
+The lesson for the next board-package bump, which is why this is recorded
+rather than just fixed: **a version bump propagates along declared
+dependencies, and `tools/deb/package-inputs.sh` does not model that.** The
+package gate does, and it is the thing to run -- not the inputs diff -- when
+asking what a bump costs.

@@ -9,8 +9,13 @@ grade as cx3576 at the same support tier, with the physical boundaries of this
 board's Amlogic USB recovery path and a qualification that states plainly what
 is not established -- no image published before, physical rows untested,
 RFCT-922 open, and a loader that does not rebuild byte-identically. The flag
-costs exactly one package version, `mica-board-s905x5m` `0.1.0-3`; the kernel,
-U-Boot and firmware components are unchanged and reused by digest. None of this
+costs five package versions, not the one the inputs diff predicted:
+`mica-board-s905x5m` `0.1.0-3`, and with it `mica-s905x5m-wireless`,
+`mica-s905x5m-wifi` and `mica-bm201-front-panel` `0.1.0-4` and
+`mica-s905x5m-bluetooth` `0.1.0-7`, because three control templates pin a
+cross-producer dependency by literal version and an inputs hash cannot see a
+version written into a sibling producer's control file. The kernel, U-Boot and
+firmware components are unchanged and reused by digest. None of this
 claims the board works on hardware.
 
 
