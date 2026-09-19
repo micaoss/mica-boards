@@ -208,3 +208,32 @@ Two CI rounds, two gates added, and both failures had the same shape -- a
 declaration somewhere else in the tree that a local measurement did not model.
 The inputs hash did not model a version pinned in a sibling's control file;
 `make check` did not model the component file list. Both do now.
+
+## The release, and the second method correction
+
+`s905x5m.20260919-2259` from `a15dbf8`, `SHA256SUMS` sha256
+`99425cc8495035d5922c322dd6114b4eee55bd991be085e5198eaa71729c99e6`, verified
+anonymously.
+
+    board     REBUILT  9 layers (evidence.json is new)
+    kernel    REBUILT  and byte-identical, 14 of 14 layers
+    uboot     REBUILT  4 of 12 files differ, the known vendor-signing set
+    firmware  REUSED   inputs bfafea529122 unchanged
+
+The prediction in this record said kernel, uboot and firmware would all be
+reused. It was measured against `1d8b274`, a working commit from the same
+hour, and `tools/reuse.sh` compares against the board's LATEST RELEASE. The
+mirror hook had changed `common/scripts` since `s905x5m.20260916-0857`, and
+`common/scripts` is in the kernel and uboot component inputs, so both rebuilt
+-- correctly.
+
+**The rule, as method rather than as an incident: to ask what a release will
+reuse, compare the component inputs against the latest release, not against
+the working tree's parent.** A prediction measured against the wrong baseline
+is not a weaker prediction; it is an accurate answer to a different question.
+
+Both rebuilds were free where it matters: the kernel came out byte-identical,
+so the toolchain and the mirror change moved its inputs and not its output,
+and the U-Boot differs in exactly the four files of
+[20260916-0620](20260916-0620-s905x5m-uboot-not-reproducible.md) -- the other
+eight layers, including all five host tools, are identical.

@@ -2,6 +2,21 @@
 
 ## 2026-09-19 [progress]
 
+`s905x5m.20260919-2259`, this board's first release as a release target, from
+`a15dbf8`. The board component rebuilt and now carries `evidence.json`, the
+kernel rebuilt BYTE-IDENTICALLY (14 of 14 layers, so the mirror hook moved its
+inputs and not its output), the U-Boot rebuilt and differs in exactly the four
+files of the vendor-signing defect, and the firmware was reused by digest. Two
+method corrections came out of the round and are recorded as method: a version
+bump propagates along declared dependencies and an inputs hash cannot see a
+version pinned in a sibling producer's control template, so the package gate
+is what answers "what does this bump cost"; and what a release will reuse is
+asked by comparing component inputs against the LATEST RELEASE, not against
+the working tree's parent.
+
+
+## 2026-09-19 [progress]
+
 s905x5m is a release target (`BOARD_RELEASE_TARGET=1`, user decision). Its
 `evidence.json` was written first, because `mica-build`'s release manifest
 requires one and derives the product's boot assurance from it: I1, the same
