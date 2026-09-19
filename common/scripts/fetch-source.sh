@@ -90,7 +90,7 @@ mirror_pack() {
         want="$(printf '%s\n' "${plan}" | sed -n "$((i + 2))p" | cut -d' ' -f1)"
         if ! mirror_get "$(printf '%s.pack.%02d' "${prefix}" "${i}")" "${chunk}"; then
             rm -f "${pack}" "${chunk}"
-            echo "fetch-source.sh: the mirror stopped answering at chunk ${i} of ${NAME}; fetching ${REPO} instead" >&2
+            echo "fetch-source.sh: the mirror has the manifest of ${NAME} ${COMMIT:0:12} but not its chunk ${i} of ${count} (${MIRROR_STATUS}); fetching ${REPO} instead" >&2
             return 1
         fi
         got="$(mirror_sha256 "${chunk}")"

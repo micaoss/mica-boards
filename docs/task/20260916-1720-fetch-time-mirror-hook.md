@@ -134,3 +134,31 @@ which is most of what mica-res was asked.
 `MICA_MIRROR` is unchanged at `https://res.micaos.dev` pending that answer: if
 digest lookups and readable paths end up on two different bases, the hook
 changes shape rather than value.
+
+## Update 2026-09-19, later: a missing chunk names itself
+
+The restored mirror serves the `uefi-x64-kernel` manifest, which declares five
+chunks, and 404s on `.pack.00` while `.pack.01`..`.pack.04` and every
+`uefi-arm64-kernel` chunk answer. The cause corrects an answer recorded above:
+the two UEFI trees do NOT share a pack. Their manifests declare different pack
+digests, because git packing is not byte-deterministic; only their first 64 MiB
+chunk happens to hash the same, and that one object was stored under the arm64
+name only.
+
+Nothing in this hook changes for it. Asking for our own row name is still
+right, one base is still right, and a chunk that 404s falls back to the clone,
+which is the designed behaviour. Deliberately NOT built: fetching a sibling
+name, falling back to a digest lookup, or special-casing chunk 00. A mirror
+with a hole is mica-res's to fix, and a consumer that routes around it would
+hide the hole and depend on a layout nobody promised.
+
+What did change is the miss line. It already carried the chunk index; it now
+carries the status too:
+
+    fetch-source.sh: the mirror has the manifest of <name> <commit> but not its
+    chunk <i> of <n> (curl 22, HTTP 404, 0 redirect(s), <url>); fetching <repo>
+    instead
+
+`tests/mirror-hook-test.sh` grew the case that produces it -- manifest present,
+chunk 00 removed -- asserting the index, the status and the fallback to the
+pinned commit, 34 assertions. That case is this incident, kept.

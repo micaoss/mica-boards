@@ -2,6 +2,19 @@
 
 ## 2026-09-19 [progress]
 
+A mirrored tree whose manifest resolves but whose chunk does not now names the
+chunk and its status -- `the mirror has the manifest of <name> <commit> but not
+its chunk <i> of <n> (curl 22, HTTP 404, ...)` -- and
+`tests/mirror-hook-test.sh` keeps the case that produces it. It is the real one:
+the restored mirror 404s on `uefi-x64-kernel` `.pack.00` because the two UEFI
+trees do not share a pack after all (different pack digests; only their first
+chunk hashes the same, stored under the arm64 name). The hook routes around
+nothing -- no sibling name, no digest fallback, no special case for chunk 00 --
+it falls back to the clone and says why.
+
+
+## 2026-09-19 [progress]
+
 A mirror miss now says why. `mirror_get` records `curl <exit>, HTTP <code>,
 <n> redirect(s), <final url>`, a miss prints it and a hit that followed a
 redirect says so, because "not mirrored" alone is how the mirror could stop

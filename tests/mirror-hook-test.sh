@@ -197,6 +197,21 @@ expect 0 "git: an unmirrored row clones upstream" "is not mirrored" \
 expect 0 "git: without --name the mirror is not consulted" "" \
     env MICA_MIRROR="${MIRROR}" bash "${FETCH_SOURCE}" "${T}/g-noname" "file://${UP}" "${COMMIT}"
 
+# The manifest resolves but a chunk does not: the shape mica-res had on
+# 2026-09-19, where the uefi-x64-kernel manifest declared five chunks and
+# chunk 00 was stored under the sibling board's name only. It must fall back
+# to the clone AND name the chunk, so the next occurrence names itself
+# instead of needing a by-hand walk of the contract.
+mv "${C0}" "${T}/chunk00.hidden"
+out="$(env MICA_MIRROR="${MIRROR}" bash "${FETCH_SOURCE}" --name "${NAME}" "${T}/g-gap" "file://${UP}" "${COMMIT}" 2>&1)" || true
+case "${out}" in *"but not its chunk 0 of 2"*) pass "git: a missing chunk names its index" ;;
+*) fail "git: a missing chunk does not name its index: ${out}" ;; esac
+case "${out}" in *"HTTP 404"*) pass "git: a missing chunk names the status it got" ;;
+*) fail "git: a missing chunk does not name its status: ${out}" ;; esac
+[ "$(git -C "${T}/g-gap" rev-parse HEAD 2>/dev/null)" = "${COMMIT}" ] \
+    && pass "git: a missing chunk falls back to the pinned commit" || fail "git: a missing chunk did not fall back"
+mv "${T}/chunk00.hidden" "${C0}"
+
 # A truncated or wrong chunk is an error rather than something handed to git.
 manifest "${PREFIX}/${COMMIT}.json" "$(printf 'b%.0s' {1..64})" "$(sha256sum "${C1}" | cut -d' ' -f1)"
 expect 1 "git: a wrong chunk sha256 is refused" "is refused here rather than handed to git" \
