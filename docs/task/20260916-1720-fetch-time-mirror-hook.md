@@ -162,3 +162,12 @@ carries the status too:
 `tests/mirror-hook-test.sh` grew the case that produces it -- manifest present,
 chunk 00 removed -- asserting the index, the status and the fallback to the
 pinned commit, 34 assertions. That case is this incident, kept.
+
+Worth keeping as its own observation, because it is not a fault in the
+diagnostics and will recur in other shapes: while the catalogue was empty the
+manifest 404ed first, so the log said the tree was not mirrored -- true, and
+not useful. A correct message can still be the wrong message when it reports
+the first failure on a path whose interesting failure is further along. The
+gap had to be found by walking the contract by hand; the fix is not a longer
+message but a message from the failure that matters, which is what the chunk
+line now is.
