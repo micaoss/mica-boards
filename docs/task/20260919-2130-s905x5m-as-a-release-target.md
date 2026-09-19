@@ -1,6 +1,6 @@
 # 20260919-2130-s905x5m-as-a-release-target What opening s905x5m for release costs
 
-- **status**: open
+- **status**: done
 - **priority**: P2
 - **owner**: tdpnmgkr
 - **createdAt**: 2026-09-19 21:30
@@ -104,3 +104,34 @@ s905x5m at the same tier with "physical rows not tested" for both, and cx3576
 is a release target. Opening a board for release does not claim it works on
 hardware; the evidence document is where that distinction is stated, which is
 why writing it is the prerequisite rather than testing the hardware.
+
+## Done 2026-09-19: flipped, with the evidence document written first
+
+User decision, relayed through the coordinator: open s905x5m and publish it.
+Landed in one commit, in the order the investigation said it had to happen.
+
+- `boards/s905x5m/evidence.json` written. It is the prerequisite nobody had
+  named: `mica-build`'s release manifest requires it and derives the product's
+  `bootAssurance` from it. I1, the same conservative grade as cx3576 at the
+  same tier, with exactly one evidence reference -- the board-independent
+  signed file-image check, which is all I1 requires and all this board has --
+  and the physical boundaries taken from `mica:docs/design/manufacturing.md`
+  section 6, with this board's recovery path (Amlogic USB burning through
+  `aml_sdc_burn` and the `update.img` container) in place of cx3576's rockusb.
+  Its `qualification` states what is NOT established: no s905x5m image had been
+  published before, the physical rows are untested, RFCT-922 is open, and the
+  loader does not rebuild byte-identically.
+- `BOARD_RELEASE_TARGET=1`.
+- `mica-board-s905x5m` `0.1.0-2` -> `0.1.0-3` (epoch 1789855200), the declared
+  cost measured above and authorised in advance. Re-measured after the edit
+  against `1d8b274`: still exactly one producer moved. The board component's
+  inputs went `bea2041aea98` -> `3161951a9587` (the flag and the new file);
+  `kernel`, `uboot` and `firmware` are unchanged and are reused by digest.
+
+**What this does not claim.** It does not claim the board works on hardware.
+The physical rows stay untested and RFCT-922 stays open, exactly as cx3576's
+do; cx3576 has been a release target at this same support tier all along, which
+is the precedent this rests on. Opening a board for release means its images
+are built and published; the evidence document is the statement of what has and
+has not been tested, which is why it was written before the flag was flipped
+and not after.

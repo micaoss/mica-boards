@@ -2,6 +2,20 @@
 
 ## 2026-09-19 [progress]
 
+s905x5m is a release target (`BOARD_RELEASE_TARGET=1`, user decision). Its
+`evidence.json` was written first, because `mica-build`'s release manifest
+requires one and derives the product's boot assurance from it: I1, the same
+grade as cx3576 at the same support tier, with the physical boundaries of this
+board's Amlogic USB recovery path and a qualification that states plainly what
+is not established -- no image published before, physical rows untested,
+RFCT-922 open, and a loader that does not rebuild byte-identically. The flag
+costs exactly one package version, `mica-board-s905x5m` `0.1.0-3`; the kernel,
+U-Boot and firmware components are unchanged and reused by digest. None of this
+claims the board works on hardware.
+
+
+## 2026-09-19 [progress]
+
 A mirrored tree whose manifest resolves but whose chunk does not now names the
 chunk and its status -- `the mirror has the manifest of <name> <commit> but not
 its chunk <i> of <n> (curl 22, HTTP 404, ...)` -- and
