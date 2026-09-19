@@ -104,3 +104,33 @@ the archive half, `blob/<sha256[0:2]>/<sha256>`, is unchanged, so
 `MICA_MIRROR` stays `https://res.micaos.dev`. `mirror_get` already follows
 redirects. On the day of the change the rebuilt namespaces listed empty and
 both halves answered 404, which the hook treats as "not mirrored".
+
+## Update 2026-09-19: a miss now says why, and both halves follow redirects
+
+The mirror stopped answering this repository between CI runs: 11 of 11 fetches
+mirrored on 2026-09-17 (run 35207062715, `48d995b`), 0 of 11 on 2026-09-19 (run
+35454561921, `858d096`), with `MICA_MIRROR` unchanged. The archive lookup
+`blob/<sha256[0:2]>/<sha256>` was not touched by that commit and misses too, so
+the change is on the service side rather than in the path this repository
+asks for.
+
+The proposed explanation -- that `/blob/` now answers with a redirect and the
+archive fetch does not follow it -- is ruled out by construction: there is one
+`mirror_get`, used by both `fetch-archive.sh` and `fetch-source.sh`, and its
+curl carries `-L`. It is now also ruled out by measurement:
+`tests/mirror-hook-server.py` answers a `/r/` prefix with a 302, and the suite
+fetches both an archive and a two-chunk pack through it (31 assertions).
+
+What was missing was not the following of redirects but the reporting of a
+miss. `2>/dev/null` swallowed curl's reason, so every outcome printed the same
+"not mirrored" line, which is how a mirror can stop answering for two days with
+every run green. `mirror_get` now records `MIRROR_STATUS`
+(`curl <exit>, HTTP <code>, <n> redirect(s), <final url>`) and
+`MIRROR_REDIRECTS`; a miss prints the status, and a hit that followed a
+redirect says so. The next CI run therefore reports, per object, whether
+`/blob/` answers, with what status, and whether a redirect was involved --
+which is most of what mica-res was asked.
+
+`MICA_MIRROR` is unchanged at `https://res.micaos.dev` pending that answer: if
+digest lookups and readable paths end up on two different bases, the hook
+changes shape rather than value.

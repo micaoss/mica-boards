@@ -2,6 +2,19 @@
 
 ## 2026-09-19 [progress]
 
+A mirror miss now says why. `mirror_get` records `curl <exit>, HTTP <code>,
+<n> redirect(s), <final url>`, a miss prints it and a hit that followed a
+redirect says so, because "not mirrored" alone is how the mirror could stop
+answering between 2026-09-17 (11 of 11 fetches mirrored) and 2026-09-19 (0 of
+11) with every run green. Both halves of the contract have always followed
+redirects -- one `mirror_get` with `-L` serves the digest lookups and the pack
+chunks alike -- and `tests/mirror-hook-server.py` now proves it by answering a
+`/r/` prefix with a 302 and fetching an archive and a two-chunk pack through
+it.
+
+
+## 2026-09-19 [progress]
+
 The board-independent radio packages stay in each board's pool, recorded with
 its reason in `docs/task/20260919-1945-shared-radio-packages-stay-per-board.md`:
 a board release is self-contained, and the duplication a consumer sees

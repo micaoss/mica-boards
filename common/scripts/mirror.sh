@@ -31,20 +31,40 @@ mirror_base() { # the base without its trailing slash, empty when the hook is of
     printf '%s' "${base%/}"
 }
 
+# Set by every mirror_get: `curl <exit>, <http code> <redirects> <final url>`,
+# and the reason a miss is reported with. A mirror that answers a path with a
+# redirect, a 404 or nothing at all is the same decision here -- fall back --
+# but they are not the same fact, and a build log that only says "not mirrored"
+# cannot tell them apart. That is how a mirror can stop answering for two days
+# with every run green (2026-09-17: 11 of 11 mirrored; 2026-09-19: 0 of 11).
+MIRROR_STATUS=""
+# The number of redirects the last mirror_get followed, so a build log says
+# whether the mirror answered directly or sent the fetch to the download host.
+MIRROR_REDIRECTS=0
+
 mirror_get() { # <path> <dest>: 0 and the bytes are in <dest>, 1 and it is not mirrored
-    local path="$1" dest="$2" base
+    local path="$1" dest="$2" base out rc=0
     base="$(mirror_base)"
+    MIRROR_STATUS=""
+    MIRROR_REDIRECTS=0
     [ -n "${base}" ] || return 1
+    # -L, for BOTH halves of the contract: the mirror may answer a readable
+    # path or a digest lookup with a redirect to the download host, and a
+    # lookup that did not follow it would read as a miss while the URL still
+    # looked correct.
     # --speed-limit/--speed-time rather than --max-time: the largest mirrored
     # object is 345 MiB, so a deadline would refuse a slow network while a
     # stalled transfer is what must be given up on.
-    if curl -fsSL --connect-timeout "${MICA_MIRROR_CONNECT_TIMEOUT}" \
+    out="$(curl -fsSL --connect-timeout "${MICA_MIRROR_CONNECT_TIMEOUT}" \
         --speed-limit 1024 --speed-time 20 --retry 0 \
-        -o "${dest}" "${base}/${path}" 2>/dev/null; then
-        return 0
-    fi
-    rm -f "${dest}"
-    return 1
+        -w '%{http_code} %{num_redirects} %{url_effective}' \
+        -o "${dest}" "${base}/${path}" 2>/dev/null)" || rc=$?
+    # shellcheck disable=SC2086  -- the three write-out fields, none of them empty
+    set -- ${out}
+    MIRROR_REDIRECTS="${2:-0}"
+    MIRROR_STATUS="curl ${rc}, HTTP ${1:-000}, ${MIRROR_REDIRECTS} redirect(s), ${3:-${base}/${path}}"
+    [ "${rc}" = 0 ] || { rm -f "${dest}"; return 1; }
+    return 0
 }
 
 mirror_sha256() { # <file>

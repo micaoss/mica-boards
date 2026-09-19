@@ -27,11 +27,15 @@ if mirror_get "blob/${SHA:0:2}/${SHA}" "${DEST}"; then
         echo "error: fetch-archive.sh: the mirror served ${got} for ${SHA}. A mirror is a source, not a trust anchor: wrong bytes are refused here rather than fetched again from ${URL}" >&2
         exit 1
     }
-    echo "fetch-archive.sh: ${SHA:0:12} from the mirror"
+    if [ "${MIRROR_REDIRECTS}" != 0 ]; then
+        echo "fetch-archive.sh: ${SHA:0:12} from the mirror, after ${MIRROR_REDIRECTS} redirect(s)"
+    else
+        echo "fetch-archive.sh: ${SHA:0:12} from the mirror"
+    fi
     exit 0
 fi
 
-echo "fetch-archive.sh: ${SHA:0:12} not mirrored, fetching ${URL}"
+echo "fetch-archive.sh: ${SHA:0:12} not mirrored (${MIRROR_STATUS:-no mirror configured}), fetching ${URL}"
 curl -L --fail --retry 3 -o "${DEST}" "${URL}"
 got="$(mirror_sha256 "${DEST}")"
 [ "${got}" = "${SHA}" ] || {

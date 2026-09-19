@@ -83,16 +83,18 @@ JSON
 }
 manifest "${PREFIX}/${COMMIT}.json" "$(sha256sum "${C0}" | cut -d' ' -f1)" "$(sha256sum "${C1}" | cut -d' ' -f1)"
 
-( cd "${SITE}" && exec python3 -u -m http.server 0 --bind 127.0.0.1 >"${T}/server.log" 2>&1 ) &
+python3 "${REPO_ROOT}/tests/mirror-hook-server.py" "${SITE}" >"${T}/server.log" 2>&1 &
 SERVER_PID=$!
 PORT=""
 for _ in $(seq 1 50); do
-    PORT="$(sed -n 's/.*127\.0\.0\.1 port \([0-9]*\).*/\1/p' "${T}/server.log" | sed -n 1p)"
+    PORT="$(sed -n '1s/^\([0-9]\{1,\}\)$/\1/p' "${T}/server.log")"
     [ -z "${PORT}" ] || break
     sleep 0.2
 done
 [ -n "${PORT}" ] || { echo "the test server did not start: $(cat "${T}/server.log")" >&2; exit 1; }
 MIRROR="http://127.0.0.1:${PORT}"
+# The same mirror reached through a 302, the shape mica-res moved to.
+REDIRECTED="${MIRROR}/r"
 VENDOR="${MIRROR}/vendor"
 DEAD="http://192.0.2.1"   # TEST-NET-1: routed nowhere, so this is the timeout case
 REFUSED="http://127.0.0.1:1"
@@ -146,6 +148,24 @@ elapsed="$(($(date +%s) - start))"
 [ "${elapsed}" -le 6 ] && pass "archive: an unreachable mirror costs ${elapsed}s and falls back" \
     || fail "archive: an unreachable mirror cost ${elapsed}s"
 
+# A mirror that answers with a redirect: BOTH halves must follow it, or every
+# object reads as a miss while the URLs still look correct.
+expect 0 "archive: a digest lookup follows a redirect" "after 1 redirect(s)" \
+    env MICA_MIRROR="${REDIRECTED}" bash "${FETCH_ARCHIVE}" "${ARCHIVE_SHA}" "http://127.0.0.1:1/never" "${T}/via302.bin"
+cmp -s "${T}/via302.bin" "${T}/archive.bin" && pass "archive: the redirected mirror delivered the pinned bytes" \
+    || fail "archive: the redirected mirror delivered other bytes"
+
+# A miss must say WHY: a 404, a refused connection and a timeout are one
+# decision and three different facts.
+out="$(env MICA_MIRROR="${MIRROR}" bash "${FETCH_ARCHIVE}" \
+    "${ONLY_VENDOR_SHA}" "${VENDOR}/only-vendor.tar.xz" "${T}/why.bin" 2>&1)"
+case "${out}" in *"HTTP 404"*) pass "archive: a miss names the status it got" ;;
+*) fail "archive: a miss does not name its reason: ${out}" ;; esac
+out="$(env MICA_MIRROR="${REFUSED}" bash "${FETCH_ARCHIVE}" \
+    "${ARCHIVE_SHA}" "${VENDOR}/toolchain.tar.xz" "${T}/why2.bin" 2>&1)"
+case "${out}" in *"curl 7"*) pass "archive: a refused connection names its curl exit" ;;
+*) fail "archive: a refused connection does not name its curl exit: ${out}" ;; esac
+
 # ---- the git trees ---------------------------------------------------------
 
 expect 0 "git: no MICA_MIRROR clones upstream" "" \
@@ -163,6 +183,11 @@ cmp -s "${T}/g-mirror/a" "${T}/work/a" && cmp -s "${T}/g-mirror/b" "${T}/work/b"
     && pass "git: the working tree is the upstream tree" || fail "git: the working tree differs from upstream"
 git -C "${T}/g-mirror" fsck --no-progress >/dev/null 2>&1 \
     && pass "git: the imported repository is fsck clean" || fail "git: the imported repository is not fsck clean"
+
+expect 0 "git: a mirrored pack is imported through a redirect" "imported from the mirror, 2 chunk(s), 1 redirect(s)" \
+    env MICA_MIRROR="${REDIRECTED}" bash "${FETCH_SOURCE}" --name "${NAME}" "${T}/g-302" "file://${T}/does-not-exist" "${COMMIT}"
+[ "$(git -C "${T}/g-302" rev-parse HEAD 2>/dev/null)" = "${COMMIT}" ] \
+    && pass "git: the redirected import is at the pinned commit" || fail "git: the redirected import is not at the pinned commit"
 
 expect 0 "git: an unmirrored row clones upstream" "is not mirrored" \
     env MICA_MIRROR="${MIRROR}" bash "${FETCH_SOURCE}" --name absent-kernel "${T}/g-404" "file://${UP}" "${COMMIT}"

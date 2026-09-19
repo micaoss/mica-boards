@@ -68,7 +68,7 @@ mirror_pack() {
     manifest="$(mktemp)"
     if ! mirror_get "${prefix}.json" "${manifest}"; then
         rm -f "${manifest}"
-        echo "fetch-source.sh: ${NAME} ${COMMIT:0:12} is not mirrored, fetching ${REPO}"
+        echo "fetch-source.sh: ${NAME} ${COMMIT:0:12} is not mirrored (${MIRROR_STATUS:-no mirror configured}), fetching ${REPO}"
         return 1
     fi
     # python3 rather than jq: the build-env images carry python3 and no jq.
@@ -116,7 +116,7 @@ mirror_pack() {
     rm -f "${pack}"
     printf '%s\n' "${COMMIT}" >"${DIR}/.git/shallow"
     git -C "${DIR}" checkout -q --detach "${COMMIT}"
-    echo "fetch-source.sh: ${NAME} ${COMMIT:0:12} imported from the mirror, ${count} chunk(s)"
+    echo "fetch-source.sh: ${NAME} ${COMMIT:0:12} imported from the mirror, ${count} chunk(s), ${MIRROR_REDIRECTS} redirect(s) on the last"
     return 0
 }
 
