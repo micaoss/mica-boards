@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-19 [progress]
+
+The board-independent radio packages stay in each board's pool, recorded with
+its reason in `docs/task/20260919-1945-shared-radio-packages-stay-per-board.md`:
+a board release is self-contained, and the duplication a consumer sees
+(`mica-bluetooth`, `mica-wifi` and `mica-wifi-ap`, identical in `cx3576` and
+`s905x5m`) is collapsed where two boards are composed, which is the only place
+that sees both. The equality is by construction -- no producer of these takes a
+board input of any kind -- and the one vector that could have broken it was
+measured away: built on an amd64 host they are byte-identical to the archives
+the arm64 runners published. A board that ever needs different radio bytes gets
+a different package name, as `mica-s905x5m-bluetooth` already does.
+
+
 ## 2026-09-18 [progress]
 
 The git half of the mirror hook follows mica-res's rebuilt resource service:
