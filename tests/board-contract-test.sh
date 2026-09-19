@@ -193,6 +193,18 @@ for dir in boards/*/; do
     pass
     [ ! -e "boards/${board}/containers.env" ] || fail "boards/${board}/containers.env exists; that switch moved to the product"
 
+    # The board component is data this directory carries, and outputs.tsv is
+    # the list the assembly holds it to. CI stages the component and refuses an
+    # unexpected or missing file, but only after the kernels are built; the two
+    # sets can be compared here, without certificates, in no time at all.
+    listed="$(awk -F'\t' '$1 == "file" && $2 == "board" && $3 !~ /^trust\// { print $3 }' "boards/${board}/outputs.tsv" | LC_ALL=C sort)"
+    present="$( (cd "boards/${board}" && find board.env evidence.json images.tsv outputs.tsv manifests -type f 2>/dev/null) | LC_ALL=C sort)"
+    if [ "${listed}" = "${present}" ]; then
+        pass
+    else
+        fail "${board}: outputs.tsv's board rows and the files boards/${board} carries differ: $(diff <(printf '%s\n' "${listed}") <(printf '%s\n' "${present}") | sed 's/^</only in outputs.tsv: /; s/^>/not listed by outputs.tsv: /' | tr '\n' ' ')"
+    fi
+
     # A release target owes an evidence document. The assembly reads it at
     # `--release assemble`, which runs after that product's archives and images
     # are built, so a board that publishes without one fails there rather than

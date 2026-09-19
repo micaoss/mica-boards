@@ -14,6 +14,7 @@ package	mica-s905x5m-wireless
 package	mica-wifi
 package	mica-wifi-ap
 file	board	board.env
+file	board	evidence.json
 file	board	images.tsv
 file	board	manifests/board.pkgs
 file	board	manifests/component-bm201-front-panel.pkgs

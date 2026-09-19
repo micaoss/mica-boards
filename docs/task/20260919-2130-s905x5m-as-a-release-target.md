@@ -189,3 +189,22 @@ rather than just fixed: **a version bump propagates along declared
 dependencies, and `tools/deb/package-inputs.sh` does not model that.** The
 package gate does, and it is the thing to run -- not the inputs diff -- when
 asking what a bump costs.
+
+## And the second thing CI caught: outputs.tsv
+
+`boards/s905x5m/outputs.tsv` did not list `evidence.json`, so the components
+job refused the staged board component -- "unexpected evidence.json" -- after
+the kernels were built. cx3576 lists it; the new board did not, because the
+file is new here.
+
+Fixed by the row, and gated so it cannot recur: `board-contract-test` now
+compares the `file board` rows of every board's `outputs.tsv` (minus the
+generated `trust/`) against the files that board directory actually carries.
+It needs no certificates and no build, so it runs in `make check` in no time,
+where CI could only see it after the expensive part. Verified by removing the
+row again: the gate names the file.
+
+Two CI rounds, two gates added, and both failures had the same shape -- a
+declaration somewhere else in the tree that a local measurement did not model.
+The inputs hash did not model a version pinned in a sibling's control file;
+`make check` did not model the component file list. Both do now.
