@@ -61,6 +61,14 @@ a uniform gap. The symbol in these trees is `CONFIG_IOSCHED_BFQ`. A negative
 result inherits the aperture of the query, and a wrong KEY is an aperture of
 zero -- the same defect as a truncated grep, with nothing truncated.
 
+**The procedure, because the warning alone would not have caught it:** a
+UNIFORM answer from a query that NAMES something is the shape to re-ask with a
+looser key, because a wrong key returns exactly that. What actually made me
+re-ask was that "absent on all four" looked too tidy for a config question,
+and "too tidy" is a weak signal to depend on; uniformity is the checkable
+version of the same instinct. Here the looser key was a case-insensitive
+search for `bfq`, and it produced the real split in one line.
+
 ## nf_tables at run time, not merely compiled
 
 `NF_TABLES` is **built in** (`=y`) on all four boards, as are `NFT_NAT`,
