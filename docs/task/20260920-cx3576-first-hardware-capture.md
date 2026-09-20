@@ -62,12 +62,29 @@ decided, this record cites the file by its sha256.
   prompt (row 2).
 - **It is not row 13.** Row 13 is a documented flash onto a blank unit over
   the board's own transport; this unit was already provisioned.
-- **The radio SKU is not in it.** The log shows the BT rfkill platform glue,
-  `mica-bt.service` attaching HCI over UART and `bluetooth.target` reached --
-  no chip identification, no association, no transfer. The dossier's
-  `AIC8800D80` remains a claim about the SKU, not an observation. Row 6 gets
-  nothing beyond `r8168: eth1: link up` (line 1251), which is link, not
-  transfer.
+- **The radio MODULE SKU is not in it; the CHIP identified itself.** An
+  earlier version of this record said there was "no chip identification".
+  That was wrong, and the fault was in the reading, not the file: the grep
+  that produced it was truncated at ten lines and the Wi-Fi probe is at 1146.
+  What the part actually answered, over SDIO:
+
+      aicbsp: aicbsp_sdio_probe:1 vid:0xC8A1  did:0x0082      (line 1146)
+      aicbsp: aicbsp_sdio_probe:2 vid:0xC8A1  did:0x0182      (line 1147)
+      AICWFDBG(LOGINFO)aicwf_sdio_chipmatch USE AIC8800D80    (line 1150)
+      AICWFDBG(LOGINFO)aicbsp: ... chip rev: 7                (line 1154)
+      aicbsp: bt patch version: - Dec 05 2023 15:53:41 - git 487f432 (line 1170)
+
+  The vendor and device IDs and the revision are read FROM the part; the
+  driver's `AIC8800D80` is the name it matched those IDs to, not an
+  unconditional string. So the chip identity and its revision are observed
+  facts from this bench, worth keeping for the first time two units differ.
+  What remains open is the MODULE SKU -- the part around the chip -- which is
+  what the dossier field asks for.
+
+  Nothing else about the radios is observed: Bluetooth reached its target and
+  `mica-bt.service` attached HCI over UART with no association and no
+  transfer, and Ethernet gave `r8168: eth1: link up` (line 1251), which is
+  link and not transfer. Neither is row 6.
 - **Rows 3, 4 and 12 -- A/B update, power-cut and recovery -- are untouched**,
   and they are the three that make a board supported rather than booting.
 
