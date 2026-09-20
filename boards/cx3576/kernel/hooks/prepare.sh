@@ -4,7 +4,10 @@
 # an entry in kernel/patches/: the payload is 2.2 MB of ASCII PPM, and a patch
 # carrying it would be a 2.2 MB diff against a file whose every line changes.
 #
-# flash/assets/splash.png is the master (docs/design/display.md section 4).
+common/kernel/splash.png is the master (docs/design/display.md section 4),
+# shared by every board that draws a logo since 2026-09-20: it arrives through
+# the family's common kernel directory, which is already a named build context
+# on both board families, so no board's build-context whitelist has to name it.
 # Deriving the PPM from it at build time keeps ONE copy of the artwork in the
 # tree. mklogo.py is pure integer arithmetic: two runs on one master produce
 # one byte string, which a float resampler or a set-ordered quantiser would
@@ -21,5 +24,5 @@ set -euo pipefail
 SRC="$1"
 BOARD_DIR="$2"
 COMMON="$3"
-python3 "${COMMON}/mklogo.py" "${BOARD_DIR}/flash/assets/splash.png" \
+python3 "${COMMON}/mklogo.py" "${COMMON}/splash.png" \
     "${SRC}/drivers/video/logo/logo_linux_clut224.ppm" 720 405

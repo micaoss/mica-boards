@@ -18,3 +18,12 @@ CONFIG_BRIDGE_NETFILTER=y
 CONFIG_MACVLAN=m
 CONFIG_IPVLAN=m
 CONFIG_VXLAN=m
+
+# THE BOOT LOGO, 2026-09-20 (user decision: the behaviour is uniform across the
+# boards that can draw). CONFIG_LOGO with the CLUT224 variant compiles the PPM
+# the kernel prepare step renders from common/kernel/splash.png; the position
+# comes from fbcon=logo-pos: in BOARD_CMDLINE_ARGS, and the logind drop-in and
+# the getty@tty1 mask in package/overlay keep the VT it lands on idle. All five
+# move together behind BOARD_BOOT_LOGO, which board-contract-test asserts.
+CONFIG_LOGO=y
+CONFIG_LOGO_LINUX_CLUT224=y

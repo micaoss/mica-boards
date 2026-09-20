@@ -205,6 +205,33 @@ for dir in boards/*/; do
         fail "${board}: outputs.tsv's board rows and the files boards/${board} carries differ: $(diff <(printf '%s\n' "${listed}") <(printf '%s\n' "${present}") | sed 's/^</only in outputs.tsv: /; s/^>/not listed by outputs.tsv: /' | tr '\n' ' ')"
     fi
 
+    # THE BOOT LOGO'S FIVE ARTEFACTS MOVE TOGETHER. BOARD_BOOT_LOGO is the one
+    # switch, and a board either has all five or none: the kernel symbol, the
+    # render step, the forced command line's position, and the two policy
+    # files that keep the logo's VT idle. The point is not tidiness -- a
+    # drop-in that outlives its logo removes a working VT login to protect
+    # nothing, and a logo with no mask is covered by the first getty anyone
+    # enables.
+    logo_flag=0
+    grep -q '^BOARD_BOOT_LOGO=1$' "boards/${board}/board.env" && logo_flag=1
+    have=0
+    # Two forms, both legitimate: a fragment line, or `scripts/config --enable
+    # LOGO` in the board's configure hook, which is how cx3576 does it over a
+    # vendor config that says `# CONFIG_LOGO is not set`.
+    grep -rqsE '^CONFIG_LOGO=y$|--enable LOGO( |$)' "boards/${board}/kernel/" && have=$((have + 1))
+    case "$(sed -n 's/^BOARD_CMDLINE_ARGS=//p' "boards/${board}/board.env")" in
+    *fbcon=logo-pos:*) have=$((have + 1)) ;;
+    esac
+    { [ -f "boards/${board}/kernel/hooks/prepare.sh" ] && grep -q mklogo "boards/${board}/kernel/hooks/prepare.sh"; } ||
+        grep -qs mklogo "boards/${board}/kernel/Dockerfile" && have=$((have + 1))
+    [ -f "boards/${board}/package/overlay/etc/systemd/logind.conf.d/50-mica-console.conf" ] && have=$((have + 1))
+    [ -L "boards/${board}/package/overlay/etc/systemd/system/getty@tty1.service" ] && have=$((have + 1))
+    if { [ "${logo_flag}" = 1 ] && [ "${have}" = 5 ]; } || { [ "${logo_flag}" = 0 ] && [ "${have}" = 0 ]; }; then
+        pass
+    else
+        fail "${board}: BOARD_BOOT_LOGO=${logo_flag} with ${have} of the five logo artefacts present (CONFIG_LOGO, fbcon=logo-pos:, the mklogo render, the logind drop-in, the getty@tty1 mask). They move together or not at all"
+    fi
+
     # THE UNIFIED CGROUP HIERARCHY, asserted here because no kernel symbol can
     # express it. podman picks its validator from what is mounted at
     # /sys/fs/cgroup: under v1 it takes verifyContainerResourcesCgroupV1, where

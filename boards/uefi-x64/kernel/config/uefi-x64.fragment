@@ -207,3 +207,18 @@ CONFIG_WATCHDOG=y
 CONFIG_WATCHDOG_NOWAYOUT=y
 CONFIG_WATCHDOG_SYSFS=y
 CONFIG_I6300ESB_WDT=y
+
+# THE BOOT LOGO, 2026-09-20 (user decision: the behaviour is uniform across the
+# boards that can draw). CONFIG_LOGO with the CLUT224 variant compiles the PPM
+# the kernel prepare step renders from common/kernel/splash.png; the position
+# comes from fbcon=logo-pos: in BOARD_CMDLINE_ARGS, and the logind drop-in and
+# the getty@tty1 mask in package/overlay keep the VT it lands on idle. All five
+# move together behind BOARD_BOOT_LOGO, which board-contract-test asserts.
+CONFIG_LOGO=y
+CONFIG_LOGO_LINUX_CLUT224=y
+
+# And the framebuffer must survive the handover. This board draws on the EFI
+# framebuffer, and i915 or virtio-gpu taking the device removes it; without
+# fbdev emulation the logo would appear and then vanish, and "I saw a logo
+# once" is a worse diagnostic than the blank tty1 it replaces.
+CONFIG_DRM_FBDEV_EMULATION=y

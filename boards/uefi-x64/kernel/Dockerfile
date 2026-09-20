@@ -94,6 +94,15 @@ COPY config/${BOARD}.fragment /board.fragment
 COPY --from=mica-trust signer.cert.pem /ksrc/certs/mica-verity-anchor.pem
 RUN grep -q 'BEGIN CERTIFICATE' /ksrc/certs/mica-verity-anchor.pem || { \
         echo "error: the file the mica-trust build context supplied is not a PEM certificate. CONFIG_SYSTEM_TRUSTED_KEYS names it, and extract-cert would fail in the middle of the compile instead of here" >&2; exit 1; }
+# THE BOOT LOGO. common/kernel/splash.png is the master every board that draws
+# one shares; mklogo.py renders it into the tree's logo_linux_clut224.ppm,
+# which CONFIG_LOGO_LINUX_CLUT224 compiles in. Both arrive through the
+# mica-common context this build already takes the shared floor from, so the
+# board's build-context whitelist names nothing new.
+COPY --from=mica-common mklogo.py /mklogo.py
+COPY --from=mica-common splash.png /splash.png
+RUN python3 /mklogo.py /splash.png /ksrc/drivers/video/logo/logo_linux_clut224.ppm 720 405
+
 RUN set -eu; cd /ksrc; mk() { env ${KERNEL_MAKE_ENV} make "$@"; }; \
     mk "${KERNEL_DEFCONFIG}"; \
     env ${KERNEL_MAKE_ENV} scripts/kconfig/merge_config.sh -m .config /mica-required.fragment /board.fragment; \
