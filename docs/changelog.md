@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-09-20 16:00 [progress]
+
+A `# CONFIG_X is not set` line in a kernel fragment is a REQUEST: kconfig
+grants it unless something enabled `select`s the symbol, and nothing in this
+repository asked afterwards whether it had been granted. Both halves of the
+shared floor are now asserted over the resolved config --
+`common/kernel/floor-check.sh` and both UEFI kernel Dockerfiles refuse any
+`CONFIG_X=` line for a symbol a fragment records off -- with
+`tests/floor-check-fixtures.sh` (eight fixtures) as the negative half in
+`make check`. Run over the two recorded resolved configs it found twenty
+denied requests. One is a shared floor line: `CGROUP_NET_CLASSID=y` on
+uefi-x64, selected by `NET_CLS_CGROUP=y` from that board defconfig, which
+uefi-arm64, s905x5m and cx3576 do not set; the classifier is now named off,
+which is the two-line change to that board config. Of the nineteen on
+uefi-arm64, deleting all of them moved exactly one symbol
+(`MDIO_BCM_UNIMAC`, `m` to `y`), so eighteen were inert and one was partly
+granted; it is now written as `CONFIG_MDIO_BCM_UNIMAC=m` and that board
+recorded config is byte-identical to `uefi-arm64.20260920-1536`. Recorded in
+`docs/task/20260920-1600-a-fragment-off-line-is-a-request.md`.
+
 ## 2026-09-20 [progress]
 
 Measured while costing the boot logo, and it corrects a shorthand rather than

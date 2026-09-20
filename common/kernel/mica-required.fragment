@@ -204,6 +204,16 @@ CONFIG_PSTORE=y
 # CONFIG_CGROUP_NET_CLASSID is not set
 # CONFIG_CGROUP_PERF is not set
 # CONFIG_TASKSTATS is not set
+# AND THE ONE THAT DENIED ONE OF THOSE REQUESTS. A line here is a request:
+# kconfig grants it unless something enabled `select`s the symbol, and until
+# 2026-09-20 nothing asked afterwards whether it had been granted. It had not
+# been, on uefi-x64: NET_CLS_CGROUP=y arrives from that board's defconfig --
+# no fragment in this tree states it -- and selects CGROUP_NET_CLASSID, so the
+# board shipped the controller the line above records off. net_cls.classid is
+# a cgroup v1 interface and no product here mounts v1, so the classifier is
+# named off rather than the line above being weakened. Measured off already on
+# uefi-arm64 and s905x5m and absent on cx3576, which builds no NET_SCHED.
+# CONFIG_NET_CLS_CGROUP is not set
 
 # Firewall: the kernel side of an nftables front-end, with iptables-nft as the
 # reference because that is the surface Debian's iptables package provides.

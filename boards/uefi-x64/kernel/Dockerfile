@@ -154,6 +154,25 @@ RUN set -eu; cd /ksrc; n=0; \
     done; \
     [ "$n" -gt 0 ] || { echo "error: zero =y lines were read from the fragments, so this loop asserted nothing" >&2; exit 1; }; \
     echo "config: all ${n} required =y options are set"
+# THE OFF HALF OF BOTH FRAGMENTS, WHICH THE RECORDED-CONFIG DIFF DOES NOT
+# COVER. The diff above refuses a resolution that differs from the committed
+# file, but re-recording is the action its own error message suggests, so a
+# symbol that was decided off and comes back on passes the diff the moment
+# somebody runs `make <board>-kernel-config` -- and the =y loop above cannot
+# see it either, because it only reads =y lines. The claim asserted here is
+# "no line turns it on": a symbol whose dependencies are unmet does not
+# appear in a resolved config at all, so requiring the literal "is not set"
+# line would refuse a kernel that is off in the stronger sense.
+RUN set -eu; cd /ksrc; off=0; \
+    for sym in $(sed -n 's/^# \(CONFIG_[A-Z0-9_]*\) is not set$/\1/p' /mica-required.fragment /board.fragment); do \
+        off=$((off + 1)); \
+        ! grep -q "^${sym}=" .config || { \
+            echo "error: a fragment records ${sym} off and the resolved config has $(grep "^${sym}=" .config). Something selects it or the pinned kernel's defconfig moved; that line is a decision with a measurement behind it, not a default." >&2; \
+            exit 1; \
+        }; \
+    done; \
+    [ "$off" -gt 0 ] || { echo "error: zero 'is not set' lines were read from the fragments, so this loop asserted nothing" >&2; exit 1; }; \
+    echo "config: all ${off} options the fragments record off are off"
 # The LSM boot list, exactly. SELinux that is compiled in but not in the boot
 # list never registers selinuxfs, and the image ships a security module that
 # is present and inactive. ONE ENTRY OF THAT LIST IS NOT SATISFIED, ON ANY

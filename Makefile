@@ -16,7 +16,7 @@
 # The boards, discovered: a directory with a board.env. Nothing here names one.
 BOARDS := $(patsubst boards/%/board.env,%,$(wildcard boards/*/board.env))
 
-.PHONY: help deps deps-check locks-test mirror-test logo-fixtures-test preflight pool package-gate offline publish publish-test version-guard-test ci-outputs-test trust-stage-test uboot-env-test board-contract-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test lint check
+.PHONY: help deps deps-check locks-test mirror-test logo-fixtures-test floor-fixtures-test preflight pool package-gate offline publish publish-test version-guard-test ci-outputs-test trust-stage-test uboot-env-test board-contract-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test lint check
 
 help:
 	@echo "  deps                verify locks/ against the releases it pins; deps-check checks it offline"
@@ -52,6 +52,12 @@ mirror-test:
 # artefacts, so the refusal is exercised over synthetic boards instead.
 logo-fixtures-test:
 	bash tests/logo-equivalence-fixtures.sh
+
+# The negative half of the shared kernel floor: every real board holds it, so
+# both loops of common/kernel/floor-check.sh are exercised over synthetic
+# source trees instead.
+floor-fixtures-test:
+	bash tests/floor-check-fixtures.sh
 
 # The <board>-% delegation rules, one per discovered board (pattern rules,
 # unlisted in .PHONY, which takes no patterns): the delegated names are
@@ -144,4 +150,4 @@ wireless-test:
 lint:
 	bash tests/shell-lint.sh
 
-check: lint locks-test mirror-test logo-fixtures-test ci-outputs-test board-contract-test uboot-env-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test
+check: lint locks-test mirror-test logo-fixtures-test floor-fixtures-test ci-outputs-test board-contract-test uboot-env-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test

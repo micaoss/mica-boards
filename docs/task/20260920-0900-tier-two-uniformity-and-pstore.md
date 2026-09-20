@@ -24,6 +24,14 @@ symbol is not offered:
     CGROUP_NET_CLASSID    y         n           n       n
     PSI                   n         n           n       y
 
+**This table is the state BEFORE the fragment lines were added, and one of
+them did not take.** Adding `# CONFIG_CGROUP_NET_CLASSID is not set` to the
+shared floor did not turn it off on uefi-x64, because that board's defconfig
+sets `NET_CLS_CGROUP=y`, which selects it; the symbol shipped `y` in
+`uefi-x64.20260920-1536`. Measured and repaired in
+[20260920-1600-a-fragment-off-line-is-a-request](20260920-1600-a-fragment-off-line-is-a-request.md),
+which also adds the assertion that would have caught it.
+
 Applying the test the coordinator set -- ON if any podman or systemd key a
 product can set reaches the controller, uniformly OFF otherwise:
 
