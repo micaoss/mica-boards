@@ -87,3 +87,42 @@ chosen elsewhere. Copying cx3576's three lines would have failed the build --
 and did, in the experiment, at the fragment's own post-olddefconfig assertion,
 which is the second time today that loop caught a symbol that does not exist
 in the tree it was aimed at.
+
+## A ninth symbol for the uniformity decision: CONFIG_IPV6_SIT
+
+Raised by the coordinator from lppm7hfw's reading and **re-measured here from
+the SHIPPED configs** rather than taken -- the two FIT values were fetched out
+of the published kernel components of `cx3576.20260920-1536` and
+`s905x5m.20260920-1536`, because those boards commit a vendor INPUT and a
+value read there is not a statement about their kernel:
+
+    board        source                                    CONFIG_IPV6_SIT
+    uefi-x64     recorded resolved config, in tree         y
+    uefi-arm64   recorded resolved config, in tree         m
+    cx3576       fetched kernel component at 1536          # not set
+    s905x5m      fetched kernel component at 1536          y
+
+Four boards, three answers, nobody chose any of them. The two vendor inputs
+happen to agree with what shipped, which is a result and not a reason to have
+skipped the fetch.
+
+**The feature is uniformly absent while the symbol is scattered** -- the tier-2
+shape exactly. No `.netdev` in any product (a tunnel on systemd-networkd needs
+one), no `ip` binary in any root, and nothing in this repository or the
+assembly configures a `sit` tunnel; the only occurrences of the string
+anywhere are these four configs.
+
+**The behavioural split is two and two, not three and one.** `=y` creates
+`sit0` at boot; `=m` does not, and the module is shipped
+(`lib/modules/6.12.107/kernel/net/ipv6/sit.ko` in the published uefi-arm64
+component) but nothing here loads it. So the interface exists on uefi-x64 and
+s905x5m, and not on uefi-arm64 or cx3576 -- whether anything in the composed
+root loads it is the assembly's half.
+
+**Why it is worth more than a ninth row.** `sit0` is the interface that made
+the mDNS exposure concrete this evening, and it exists by accident on two of
+four boards. Measured on cx3576 the same reading would have shown the global
+setting and nothing exposed, and the finding would have looked theoretical.
+**That is what a tier-2 divergence costs: not a feature difference, but a
+difference in what a measurement can see** -- which is an argument for
+uniformity in either direction, and the reason the decision should name it.
