@@ -73,6 +73,24 @@ fi
 # is the second half of the same statement -- one entry per path, whatever the
 # index holds.
 mapfile -t files < <(git ls-files '*.sh' 'hack/*' | sort -u)
+
+# EVERY tracked shell file is syntax-checked, before any rule below runs and
+# whatever the file does with pipefail. `bash -n` costs milliseconds and
+# catches the class no rule about pipelines can see: on 2026-09-20 an edit to
+# a board's kernel prepare hook dropped the `# ` from a comment line, `make
+# check` was green, and CI failed inside a container at the one step that runs
+# that hook -- after the source fetch and the toolchain, minutes in. A syntax
+# error is the cheapest possible failure to move earlier.
+syntax_bad=0
+for f in "${files[@]}"; do
+    if out="$(bash -n "${f}" 2>&1)"; then
+        continue
+    fi
+    syntax_bad=1
+    FAIL_N=$((FAIL_N + 1))
+    echo "FAIL: ${f}: not valid bash: ${out}" >&2
+done
+[ "${syntax_bad}" = 0 ] || { echo "RESULT: FAIL (a tracked shell file does not parse)"; exit 1; }
 [ "${#files[@]}" -gt 0 ] || { echo "error: no shell scripts found; this lint would pass by finding nothing" >&2; exit 1; }
 
 # A SOURCED LIBRARY RUNS UNDER ITS CALLER'S OPTIONS, so it is in scope even

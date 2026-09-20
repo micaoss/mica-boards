@@ -4,7 +4,7 @@
 # an entry in kernel/patches/: the payload is 2.2 MB of ASCII PPM, and a patch
 # carrying it would be a 2.2 MB diff against a file whose every line changes.
 #
-common/kernel/splash.png is the master (docs/design/display.md section 4),
+# common/kernel/splash.png is the master (docs/design/display.md section 4),
 # shared by every board that draws a logo since 2026-09-20: it arrives through
 # the family's common kernel directory, which is already a named build context
 # on both board families, so no board's build-context whitelist has to name it.
