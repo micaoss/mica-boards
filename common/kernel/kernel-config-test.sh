@@ -36,11 +36,22 @@
 # runs, and both stay green over a kernel compiled before the fragment they are
 # checking. Measured on cx3576 -- an Image from 2026-08-31 rode every image built
 # for the next week while the fragment gained dm-crypt, the eBPF/firewall/bridge
-# floor and NF_CONNTRACK_MARK/NF_NAT_MASQUERADE. The half that sees THAT is
-# verify/src/checks-kernel.ts, which reads the `/boot/config-*` the image
-# actually ships; since RFCT-343 every board exports its resolved config and that
-# check runs on all of them. This file and that one are the two ends: inputs
-# here, shipped artefact there, and neither substitutes for the other.
+# floor and NF_CONNTRACK_MARK/NF_NAT_MASQUERADE. NOTHING CATCHES THAT FOR THESE
+# SYMBOLS. Measured against mica-build at 77a124b: two places read a shipped
+# kernel configuration, and neither reads this list. build/src/kernel-package.ts
+# lines 141-149 read the `config` file of the board's kernel component and refuse
+# a kernel missing RD_ZSTD, BLK_DEV_LOOP, BLK_DEV_DM, DM_VERITY,
+# DM_VERITY_VERIFY_ROOTHASH_SIG, SYSTEM_TRUSTED_KEYRING, EXT4_FS, SQUASHFS,
+# WATCHDOG_NOWAYOUT and the per-family boot symbols, plus the embedded trust
+# anchor and, on a FIT board, CONFIG_CMDLINE equal to the packaged command line;
+# rootfs/compose/compose-install.sh lines 203-207 re-read
+# `/boot/config-<release>` in the composed root for DM_INIT, BLK_DEV_DM,
+# DM_VERITY and SQUASHFS. Both lists are about boot and verity, `verify/` there
+# contains no reference to /boot/ at all, and no gate in either repository
+# asserts a netavark symbol or the mica-required floor against a shipped
+# artefact. So this file and the post-olddefconfig loops are not one of two ends:
+# for these symbols they are the only end, which is exactly why a stale
+# `_out/boards/<board>/kernel/` escapes everything.
 #
 # EVERY BOARD, since PLAN-074. uefi-x64 used to be out of scope because it ran
 # Debian's kernel, where these are modules the distribution ships and nothing in
