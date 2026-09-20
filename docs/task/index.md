@@ -14,3 +14,4 @@
 - [20260920-0720-the-logo-vt-policy-is-cx3576s](20260920-0720-the-logo-vt-policy-is-cx3576s.md) -- done
 - [20260920-0800-cross-and-native-agree-per-tree-not-per-rule](20260920-0800-cross-and-native-agree-per-tree-not-per-rule.md) -- done
 - [20260920-0810-pstore-backends-per-board](20260920-0810-pstore-backends-per-board.md) -- done
+- [20260920-0820-my-vectors-are-a-stale-copy](20260920-0820-my-vectors-are-a-stale-copy.md) -- done

@@ -105,7 +105,7 @@ expect 1 "upstream.sh: a tree the lock does not pin" "pins no git tree" bash "${
 expect 1 "upstream.sh: an architecture a source row does not have" "pins no source" bash "${UPSTREAM}" source s905x5m-arm-linux-toolchain arm64 url
 
 # A board release's scope must be a name; the vectors cover the other scoped refusals.
-sed "s#^release\tmica-boards\tx64[.]#release\tmica-boards\tX64.#" "${VECTORS}/lock/valid/mica-boards.x64.lock" >"${T}/badscope.lock"
+sed "s#^release\tmica-boards\tuefi-x64[.]#release\tmica-boards\tUEFI-X64.#" "${VECTORS}/lock/valid/mica-boards.uefi-x64.lock" >"${T}/badscope.lock"
 expect 1 "check-lock.sh: a scope that is not a name" "refused field-value" bash "${CHECK}" lock "${T}/badscope.lock"
 
 # Every `# syntax=` line names the docker/dockerfile:1 image of the lock's upstream rows, by its digest.
