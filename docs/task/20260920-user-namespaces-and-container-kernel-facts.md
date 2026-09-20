@@ -18,7 +18,17 @@ VENDOR INPUT: `configure.sh` merges `common/kernel/mica-required.fragment`
 into it and asserts the floor on the result, so the committed file of cx3576
 says `# CONFIG_SECURITY is not set` while the kernel it ships has
 `CONFIG_SECURITY=y`. Reading the committed file would have produced a
-confident wrong answer about three of the four boards. The configs below are
+confident wrong answer about three of the four boards.
+
+**The rule, and it is the companion of the one in
+[20260920-cx3576-first-hardware-capture](20260920-cx3576-first-hardware-capture.md):
+an input is not an output.** A committed config is what a build is asked to
+start from; `/boot/config-<release>` is what a device runs, and only the
+second is a fact about a device. The same sentence caught a real defect
+elsewhere in the workspace on the same evening -- a composer proving a
+declaration against the root it takes as input, with nothing comparing it to
+the root it produces -- so the question to ask of any file before concluding
+from it is which end of a build it sits on. The configs below are
 the published `kernel/config` (or `kernel/prod/config`) artefacts of the
 current releases -- the same bytes that land at `/boot/config-<release>`:
 `cx3576.20260917-1007`, `s905x5m.20260919-2259`, `uefi-x64.20260916-0857`,
