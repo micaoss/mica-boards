@@ -106,3 +106,27 @@ So the derived gap is exactly six vectors and the reader support behind them,
 and it lands with the authorised mechanism (read the vectors out of mica at a
 pinned commit, compare the whole set in both directions) after the kernel
 round.
+
+## The ruling to implement against, recorded 2026-09-20
+
+- **The pin is `tools/vectors.pin`** -- a separate small file naming the
+  repository and the full 40-hex commit, NOT a row in `locks/pins/` (that
+  directory means a producer release we consume, and mica publishes none) and
+  NOT a `git` row in `locks/upstream.lock` (that file is third-party inputs,
+  and a row there would assert mica is upstream of us, which is false). The
+  BASENAME is uniform across repositories on purpose: it turns "find each
+  reader's copy" into one command, which is the obstacle that made gating the
+  vector table not worth building.
+- **The derivation is a FLOOR, not a ceiling** (mica-system-base's clause).
+  This repository is a producer as well as a consumer: `mica-build` reads the
+  lock it emits, so conforming only to what it consumes would let it emit a
+  row nobody downstream accepts. Its defects arrive in somebody else's gate.
+  In practice that means keeping every vector it already has rather than
+  pruning to the derived set, and adding `data`.
+- **Compare BLOBS, not the manifest, and do not trust a provenance comment --
+  including your own.** Base's vectors are byte-identical to mica at HEAD
+  while its provenance line names a commit where the file had 69 rows: the
+  vectors were refreshed and the line was not. The comparison recorded above
+  was a `diff -r` over the whole directory, so it is blob-level and not
+  manifest-level, which is the only reason it caught that the content had
+  moved forward while the set had not.
