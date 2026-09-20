@@ -41,8 +41,8 @@ What is missing is only the join, and the join needs a vocabulary.
 
 **1. A capability vocabulary, owned here, one line per capability.**
 `common/kernel/capabilities.tsv`, rows `<capability> <symbol>[ <symbol>...]`,
-where every symbol must be `=y` (or `=m` with the module shipped) in the
-RESOLVED config for the board to provide that capability. Only this
+where every symbol must be `=y` in the RESOLVED config for the board to
+provide that capability -- `=y` and not `=m`, for the reason argued below. Only this
 repository can say what a requirement means in a kernel config, so the
 mapping lives here; the REQUIREMENTS come from the repository that makes the
 call, named in a comment on each row.
