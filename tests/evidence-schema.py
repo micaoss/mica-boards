@@ -12,7 +12,23 @@ archives and images are built, so a malformed file there costs a whole product
 build. Keep it in step with that file; where they disagree, that file wins.
 """
 import json
+import re
 import sys
+
+# A path into a repository, not preceded by `<repository>:`. THE TOP-LEVEL
+# NAMES ARE ENUMERATED, not derived: they are the directories the workspace's
+# repositories actually have, and a new one has to be added here. What this
+# catches is the shape that rotted -- on 2026-09-20 six of this repository's
+# twelve evidence references named `tests/file-ab-uefi-x64/` and
+# `tests/file-ab-fit/`, directories mica-build had renamed, and the bare form
+# made them read as local paths that something here could resolve. NOTHING
+# here can: every instrument these documents cite is in another repository.
+#
+# It asserts the citation says WHERE, not that the path exists. Resolving it
+# would mean pinning a repository that consumes this one, which inverts the
+# dependency, or pointing a gate at its `main`, which is a coupling worse than
+# the staleness it catches.
+BARE_PATH = re.compile(r"(?<![\w:/-])(?:verify|tests|build|boot|rootfs|tools|crates|src)/[A-Za-z0-9_./-]+")
 
 LEVELS = {
     "I1": ["verity-root"],
@@ -51,6 +67,14 @@ def main() -> None:
             sys.exit("%s: %r is not an evidence class the assembly knows" % (path, ref["class"]))
         if not isinstance(ref["ref"], str) or not ref["ref"].strip():
             sys.exit("%s: the %s reference is empty" % (path, ref["class"]))
+        for bare in BARE_PATH.findall(ref["ref"]):
+            sys.exit(
+                "%s: the %s reference names %r without a repository. Every instrument this file"
+                " cites lives in another repository -- there is no verify/ or tests/lifecycle-*/"
+                " here -- so a bare path reads as local and cannot be resolved by anybody."
+                " Write it as <repository>:<path> (mica:docs/README.md, *Workspace facts*)."
+                % (path, ref["class"], bare)
+            )
         classes.add(ref["class"])
     missing = [c for c in LEVELS[level] if c not in classes]
     if missing:

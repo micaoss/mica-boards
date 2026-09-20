@@ -7,7 +7,7 @@
   "evidenceRefs": [
     {
       "class": "verity-root",
-      "ref": "verify/run.sh --verify --board s905x5m --image IMAGE --public-key KEY; the board-independent signed file-image checks"
+      "ref": "mica-build:verify/run.sh --verify --board s905x5m --image IMAGE --public-key KEY; the board-independent signed file-image checks"
     }
   ],
   "physicalBoundaries": {

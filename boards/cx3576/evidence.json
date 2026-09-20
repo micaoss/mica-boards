@@ -7,11 +7,11 @@
   "evidenceRefs": [
     {
       "class": "verity-root",
-      "ref": "verify/run.sh --verify --board cx3576 --image IMAGE --public-key KEY; current signed file-image checks"
+      "ref": "mica-build:verify/run.sh --verify --board cx3576 --image IMAGE --public-key KEY; current signed file-image checks"
     },
     {
       "class": "ab-fallback",
-      "ref": "tests/lifecycle-uboot-fit/firmware-io.sh and tests/lifecycle-uboot-fit/records.sh"
+      "ref": "mica-build:tests/lifecycle-uboot-fit/firmware-io.sh and mica-build:tests/lifecycle-uboot-fit/records.sh"
     },
     {
       "class": "update-negative",
@@ -19,7 +19,7 @@
     },
     {
       "class": "signature-negative",
-      "ref": "tests/lifecycle-uboot-fit/signatures.sh"
+      "ref": "mica-build:tests/lifecycle-uboot-fit/signatures.sh"
     }
   ],
   "physicalBoundaries": {
