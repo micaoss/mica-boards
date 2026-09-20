@@ -110,3 +110,19 @@ this record claims the board is qualified.
    gives the card's `SCA128` name, not the manufacturer's part) and the radio
    module SKU.
 5. Where the capture may be kept, given the SoC serial it contains.
+
+## The reading rule this round produced
+
+A `head` or a truncated grep is a fine way to LOOK at a file and a bad way to
+CONCLUDE about one. The claim "no chip identification" above came from a
+window ten lines wide over a file whose answer is at line 1146; every positive
+claim in the same reading was tied to a line number and every one of them
+held. That asymmetry is the rule: **an absence is a property of the SEARCH
+until it is a property of the FILE**, so a negative claim needs a search that
+ran to completion, and it inherits the aperture of whatever produced it.
+
+The coordinator reports this as the third instance of the same shape in two
+days across three repositories and three kinds of tool -- a query filtered by
+a tag prefix that could not see the older tag form, a coverage join keyed on a
+pattern that missed the rows it was quoting, and this grep. None of the three
+looked truncated in its output; each read like a finished answer.
