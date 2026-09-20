@@ -551,3 +551,8 @@ CONFIG_I6300ESB_WDT=y
 # move together behind BOARD_BOOT_LOGO, which board-contract-test asserts.
 CONFIG_LOGO=y
 CONFIG_LOGO_LINUX_CLUT224=y
+# Only the CLUT224 logo: `defconfig` turns the mono and VGA16 variants on
+# beside it, and they are dead payload on a board with a colour framebuffer.
+# cx3576's configure hook disables the same two.
+# CONFIG_LOGO_LINUX_MONO is not set
+# CONFIG_LOGO_LINUX_VGA16 is not set
