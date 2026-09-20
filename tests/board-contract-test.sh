@@ -205,6 +205,24 @@ for dir in boards/*/; do
         fail "${board}: outputs.tsv's board rows and the files boards/${board} carries differ: $(diff <(printf '%s\n' "${listed}") <(printf '%s\n' "${present}") | sed 's/^</only in outputs.tsv: /; s/^>/not listed by outputs.tsv: /' | tr '\n' ' ')"
     fi
 
+    # THE UNIFIED CGROUP HIERARCHY, asserted here because no kernel symbol can
+    # express it. podman picks its validator from what is mounted at
+    # /sys/fs/cgroup: under v1 it takes verifyContainerResourcesCgroupV1, where
+    # a memory limit is DISCARDED WITH A WARNING and the container runs
+    # unbounded. A board could select that for every container on it with one
+    # word in its forced command line, and no capability row would see it.
+    # Worse on the 6.12 boards, whose kernels carry no v1 memory controller at
+    # all (`# CONFIG_MEMCG_V1 is not set`): there a v1 hierarchy would have no
+    # memory limits rather than weak ones. The line holds today; this is what
+    # keeps it holding.
+    cmdline="$(sed -n 's/^BOARD_CMDLINE_ARGS=//p' "boards/${board}/board.env" | tr -d '"')"
+    case " ${cmdline} " in
+    *" systemd.unified_cgroup_hierarchy=0 "* | *" cgroup_no_v1"*)
+        fail "${board}: BOARD_CMDLINE_ARGS selects a cgroup v1 hierarchy; podman would validate on its v1 branch, where a memory limit is discarded with a warning and the container runs unbounded"
+        ;;
+    *) pass ;;
+    esac
+
     # A release target owes an evidence document. The assembly reads it at
     # `--release assemble`, which runs after that product's archives and images
     # are built, so a board that publishes without one fails there rather than
