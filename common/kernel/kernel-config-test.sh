@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The kernel symbols netavark needs, asserted against every board's config.
 #
-#   bash tests/netavark-kernel-config-test.sh
+#   bash common/kernel/kernel-config-test.sh   (make kernel-config-test)
 #
 # WHY THIS FILE EXISTS. podman bridge networking on cx3576 was unusable because
 # the board kernel was built with `# CONFIG_NFT_FIB_IPV4 is not set`, the same

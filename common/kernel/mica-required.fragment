@@ -95,7 +95,7 @@ CONFIG_BRIDGE=y
 # container/host veth pair and programs `fib daddr type local` in an inet
 # table, which needs the fib expression for both address families and their
 # shared core. The per-symbol citations into the pinned netavark source live
-# in tests/netavark-kernel-config-test.sh; the same set was measured
+# in common/kernel/kernel-config-test.sh; the same set was measured
 # missing on hardware (s905x5m, cx3576 baseline) as the reason bridge
 # networking failed. uefi-x64 runs Debian's kernel, where these ship as modules --
 # verify/src/checks-kernel.ts asserts that off the built image.
@@ -138,6 +138,14 @@ CONFIG_MEMCG=y
 CONFIG_CFS_BANDWIDTH=y
 CONFIG_IOSCHED_BFQ=y
 CONFIG_BFQ_GROUP_IOSCHED=y
+
+# io.max, added 2026-09-20. mica:docs/design/containers.md section 8 publishes
+# IOReadBandwidthMax= and IOWriteBandwidthMax= as "kernel controllers over the
+# container, not advice to it", and without BLK_DEV_THROTTLING the io.max file
+# does not exist on ANY board -- the one ceiling of that table that was
+# available nowhere. It is the same shape as the three above: no board decided
+# against it, no defconfig happened to carry it.
+CONFIG_BLK_DEV_THROTTLING=y
 
 # Firewall: the kernel side of an nftables front-end, with iptables-nft as the
 # reference because that is the surface Debian's iptables package provides.
@@ -243,7 +251,7 @@ CONFIG_NETFILTER_XT_TARGET_REDIRECT=y
 #   NF_NAT_MASQUERADE -- selected by the masquerade expression above, so on
 #   today's kernel it is already y. It is named anyway because a select is a
 #   fact about 6.12's Kconfig, not a requirement this tree states, and
-#   tests/netavark-kernel-config-test.sh asserts that every symbol netavark
+#   common/kernel/kernel-config-test.sh asserts that every symbol netavark
 #   needs is named by a floor that survives olddefconfig on EVERY board. An
 #   unstated symbol that happens to be selected is exactly the shape of the
 #   gap above.
