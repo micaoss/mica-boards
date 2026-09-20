@@ -11,7 +11,7 @@
     },
     {
       "class": "ab-fallback",
-      "ref": "tests/file-ab-fit/firmware-io.sh and tests/file-ab-fit/records.sh"
+      "ref": "tests/lifecycle-uboot-fit/firmware-io.sh and tests/lifecycle-uboot-fit/records.sh"
     },
     {
       "class": "update-negative",
@@ -19,7 +19,7 @@
     },
     {
       "class": "signature-negative",
-      "ref": "tests/file-ab-fit/signatures.sh"
+      "ref": "tests/lifecycle-uboot-fit/signatures.sh"
     }
   ],
   "physicalBoundaries": {
