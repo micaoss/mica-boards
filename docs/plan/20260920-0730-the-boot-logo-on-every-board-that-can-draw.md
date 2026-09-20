@@ -148,3 +148,58 @@ UEFI boards that means `make <board>-kernel-config` and a reviewed diff (the
 mechanism that refused my first experiment), while the FIT boards assert each
 `=y` line at build time and record no resolved config. Then per-board
 releases, then a mica-build round to re-pin.
+
+## Update 2026-09-20 08:00: the user decided both questions, and the round grew
+
+The user decided the container gaps are CLOSED rather than declared ("unless
+the kernel cannot support it, the behaviour must be uniform"), and that
+uefi-arm64 GAINS the framebuffer after all -- against the recommendation
+above, with the +6.8 % in front of them, which is why the number was produced.
+
+Scope taken as the whole capability rather than the word "framebuffer": a logo
+nobody can type under is half a decision, so the arm64 work is the display
+path AND the input path AND the logo AND the two policy files.
+
+### Every board's delta, each against its own control
+
+    board       artefact              control     after       delta
+    uefi-x64    bzImage (compressed)  14992384 *  15107072    +114688   +0.765%
+                MEMCG + CFS_BANDWIDTH                +69632
+                IOSCHED_BFQ + BFQ_GROUP_IOSCHED      +45056
+                (logo + DRM_FBDEV_EMULATION, separately measured, +40960)
+    uefi-arm64  Image (uncompressed)  24537600 *  26350080    +1812480  +7.39%
+                the whole display path, INPUT_KEYBOARD, SYSFB_SIMPLEFB,
+                the logo, and CFS_BANDWIDTH, in one build
+    cx3576      Image (uncompressed)  44687872    44755456    +67584    +0.15%
+                IOSCHED_BFQ + BFQ_GROUP_IOSCHED; it already has the logo
+    s905x5m     Image (uncompressed)  33065472    33327616    +262144   +0.79%
+                the logo; it needs no container symbol
+
+`*` control reproduced the published artefact byte for byte.
+
+### The structural question, answered rather than made to fit
+
+uefi-arm64 boots `root=/dev/dm-0` from a `dm-mod.create=` table with no
+initramfs, so anything that must bind before the root mounts has to be built
+in. The display path does not sit on that path, and every symbol was added
+`=y` and survived `olddefconfig` under the fragment's own assertion loop --
+the resolved config carries `SYSFB=y`, `SYSFB_SIMPLEFB=y`, `DRM_SIMPLEDRM=y`,
+`FRAMEBUFFER_CONSOLE=y` (with `_DETECT_PRIMARY`), `INPUT_KEYBOARD=y`,
+`LOGO=y`, `CFS_BANDWIDTH=y`. **The cost is bytes, not structure**, so the
+decision the user took on a size number does not need retaking.
+
+### The shared floor is a no-op where the symbols already exist
+
+Measured: s905x5m built from a tree with the four container symbols added to
+`common/kernel/mica-required.fragment` is byte-for-byte identical to the same
+tree without them. All four kernels rebuild after a floor change; only the
+boards that gain a symbol change bytes.
+
+### And the check needs a negative case once every board passes it
+
+If all four boards end with `BOARD_BOOT_LOGO=1`, the five-artefact
+equivalence only ever exercises its positive half. The round therefore adds a
+FIXTURE -- a synthetic board directory declaring the flag without the mask,
+and another carrying the drop-in without the flag -- so the refusal is
+exercised on every `make check`. A refusal suite that never refuses is the
+same defect as a mirror nobody has seen fall back.
