@@ -59,6 +59,30 @@ actually call, as it did for the memory case:
     container-network   BRIDGE VETH NF_TABLES NF_NAT   # [confirm] netavark's actual set
     container-rootless  USER_NS FUSE_FS             # [confirm] fuse-overlayfs only?
 
+`display`, added 2026-09-20 because it would PASS today -- a capability check
+added while everything agrees is one nobody has to defend, and `BOARD_FEATURES`
+declares `display` on exactly the two boards whose kernels can render:
+
+    display             VT VT_CONSOLE FRAMEBUFFER_CONSOLE FB \
+                        (DRM_ROCKCHIP|AMLOGIC_DRM|DRM_I915|DRM_VIRTIO_GPU|FB_EFI)
+    display-input       INPUT_KEYBOARD HID HID_GENERIC USB_HID
+
+The parenthesised group is an ANY-OF: the display driver is board-specific by
+nature and a fixed list would have to be edited for every new board, so the
+row form needs one alternation. Splitting the input half out is deliberate --
+a board can render without a keyboard path, and the two failures look nothing
+alike to a person standing in front of it.
+
+**And the limit of the whole mechanism, stated here rather than discovered
+later: a capability row is a NECESSARY condition, not a proof of function.**
+uefi-x64 is the worked example: it has `FB_EFI=y` and
+`FRAMEBUFFER_CONSOLE=y`, so this row would pass, and yet
+`DRM_FBDEV_EMULATION` is not set while `DRM_I915` is built in, and a DRM
+driver taking over the device usually removes the EFI framebuffer. Whether a
+VT survives that handover is a runtime fact no config expresses. A capability
+check catches a board that CANNOT do a thing; only a bench or a guest proves
+that it DOES.
+
 **2. Each board's kernel component publishes what it provides.** The build
 already has the resolved config in hand where the floor is asserted; it emits
 `kernel/capabilities.tsv` there -- the capability names from the vocabulary

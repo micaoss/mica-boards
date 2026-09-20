@@ -75,3 +75,18 @@ driver that binds, and `INPUT_KEYBOARD` with `USB_HID` for the half that
 types. Today nothing checks that a board declaring `display` can render one;
 here they both can, so the check would pass -- which is the right time to add
 it rather than after it fails.
+
+## Confirmed from the device, 2026-09-20
+
+The user, on the cx3576 with a monitor and the bench keyboard: **Alt+F2 works
+and F1 shows the logo**. So the VT login is reached on hardware, and tty1
+carries the boot logo with no prompt -- which is what the dropped
+`getty.target.wants/getty@tty1.service` predicts and what `autovt@ttyN`
+activating on demand through logind provides. The kernel half read out of the
+capture and the userspace half read out of the composed root agree with what
+the device does.
+
+Note for when the uefi-x64 question is answered under QEMU: a guest takes the
+`DRM_VIRTIO_GPU` path, so a pass there answers the virtio half and leaves
+`DRM_I915` on real Intel hardware open. A QEMU pass should not be recorded as
+an answer for both.
