@@ -18,7 +18,6 @@ one means no container runs on that board at all.
     requirement                          symbols                      uefi-x64 uefi-arm64 cx3576 s905x5m
     pids limit (default 2048)            CGROUP_PIDS                  y        y          y      y
     device rules as a BPF program        BPF_SYSCALL CGROUP_BPF       y        y          y      y
-                                         CGROUP_DEVICE                y        y          y      y
     the built-in seccomp profile         SECCOMP SECCOMP_FILTER       y        y          y      y
     storage.conf's forced overlay        OVERLAY_FS                   y        y          y      y
     netavark's bridge and veth           BRIDGE VETH                  y        y          y      y
@@ -94,3 +93,24 @@ Every one of these fails LOUDLY at the write when a flag asks for it, except
 that `podman stats` reports an empty memory figure with no warning, which is
 the one silent half. The cost of closing the first two on uefi-x64 is measured
 in `20260920-the-floor-and-the-declared-features.md`: +69632 bytes, +0.46 %.
+
+## Two corrections from mica-podman, 2026-09-20, after this was written
+
+- **`CGROUP_DEVICE` is not a requirement and is struck from the table above.**
+  It is the v1 device controller; on v2 crun compiles the rules into a BPF
+  program, so the requirement is `CGROUP_BPF` with `BPF_SYSCALL`, both already
+  `y` everywhere. The conclusion is unchanged and the reason is now the right
+  one -- a row naming the v1 symbol would have passed for the wrong reason on
+  all four boards.
+- **The BFQ gap is narrower than this record first made it.** Plain
+  `--blkio-weight` falls back from `io.bfq.weight` to `io.weight` with a
+  rescale, so `IOSCHED_BFQ` is not needed for the common case. Missing it on
+  uefi-x64 and cx3576 costs `--blkio-weight-device`, the PER-DEVICE form, and
+  not `--blkio-weight`. The split and the symbol name stand; what shrinks is
+  what it denies.
+
+Also measured while answering the cgroup-v2 question the symbols cannot hold:
+no board's `BOARD_CMDLINE_ARGS` mentions cgroups at all, and on the 6.12
+boards (uefi-arm64, s905x5m) the v1 memory controller is not compiled --
+`# CONFIG_MEMCG_V1 is not set` -- so a v1 hierarchy there would have no memory
+limits at all rather than weaker ones.

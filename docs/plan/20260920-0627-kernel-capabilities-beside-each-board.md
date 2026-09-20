@@ -47,17 +47,70 @@ repository can say what a requirement means in a kernel config, so the
 mapping lives here; the REQUIREMENTS come from the repository that makes the
 call, named in a comment on each row.
 
-Draft for `containers`, split so a product can need part of it. Rows marked
-`[confirm]` need mica-podman to state what the engine and its helpers
-actually call, as it did for the memory case:
+The rows below are mica-podman's answers, taken whole on 2026-09-20 rather
+than reconciled with the first draft: it traced podman 5.8.6, crun 1.29.1 and
+netavark 2.1.0 at the pinned commits to the write or the syscall. Four of its
+answers changed what this document had.
 
-    container-runtime   CGROUPS CGROUP_PIDS CGROUP_DEVICE CGROUP_BPF SECCOMP \
-                        NAMESPACES USER_NS PID_NS NET_NS IPC_NS UTS_NS OVERLAY_FS
-    container-memory    MEMCG                       # podman --memory -> memory.max
-    container-cpu       CFS_BANDWIDTH FAIR_GROUP_SCHED CGROUP_SCHED   # --cpus -> cpu.max
-    container-io        BLK_CGROUP                  # [confirm] --blkio-weight
-    container-network   BRIDGE VETH NF_TABLES NF_NAT   # [confirm] netavark's actual set
-    container-rootless  USER_NS FUSE_FS             # [confirm] fuse-overlayfs only?
+    container-runtime   CGROUP_PIDS CGROUPS CGROUP_BPF BPF_SYSCALL \
+                        SECCOMP SECCOMP_FILTER OVERLAY_FS \
+                        NAMESPACES PID_NS NET_NS IPC_NS UTS_NS
+    container-memory    MEMCG                  # --memory -> memory.max
+    container-cpu       CGROUP_SCHED FAIR_GROUP_SCHED CFS_BANDWIDTH   # --cpus -> cpu.max
+    container-cpuset    CPUSETS                # --cpuset-cpus, --cpuset-mems
+    container-io        BLK_CGROUP             # --blkio-weight -> io.weight
+    container-io-device IOSCHED_BFQ BFQ_GROUP_IOSCHED   # --blkio-weight-device -> io.bfq.weight
+    container-network   BRIDGE VETH            # netavark's netlink half
+
+What changed, and why each correction matters more than the row it fixes:
+
+- **`CGROUP_DEVICE` is gone.** It is the v1 device controller; on v2 crun
+  compiles the device rules into a BPF program, so the requirement is
+  `CGROUP_BPF` with `BPF_SYSCALL`. A row naming the v1 symbol would have
+  passed for the wrong reason on every board.
+- **`SECCOMP_FILTER` beside `SECCOMP`.** The profile podman applies is
+  installed as a filter; `SECCOMP` alone is the framework.
+- **`USER_NS` is gone from `container-runtime`.** A rootful container creates
+  no user namespace unless `--userns` asks for one. It stays a true fact about
+  every board and stops being a container requirement.
+- **`container-io` split in two.** Plain `--blkio-weight` FALLS BACK from
+  `io.bfq.weight` to `io.weight` with a rescale, so BFQ is not required for
+  the common case. That narrows the gap this repository found the same day:
+  missing `IOSCHED_BFQ` on uefi-x64 and cx3576 costs `--blkio-weight-device`,
+  not `--blkio-weight`.
+- **`container-rootless` is dropped.** mica-podman recommends against
+  rootless and the drafted symbols were wrong anyway: `FUSE_FS` is a proxy for
+  fuse-overlayfs, which is a root-CONTENTS question, while the kernel half of
+  rootless storage is unprivileged overlayfs. A row nobody can satisfy and
+  nobody needs is one a later reader takes for a requirement.
+- **The firewall half of the network is NOT in this table.** The netavark we
+  ship links no nftables library and runs the `nft` BINARY, so a board with
+  `NF_TABLES=y` and a root without `/usr/sbin/nft` fails identically and
+  silently. That half belongs to the composed root, which is mica-build's.
+  This table keeps only the netlink half, bridge and veth.
+
+## The requirement this vocabulary CANNOT hold, named rather than omitted
+
+**cgroup v2 must be the unified hierarchy at boot.** It selects podman's v2
+validation branch over the v1 one that would silently discard limits, and it
+is a property of boot and init, not of a kernel symbol: no `CONFIG_*`
+expresses it and no capability row can. Saying so here is the point -- a
+requirement a table cannot hold must be named as one, or the table reads as
+complete.
+
+What this repository can contribute to it, measured:
+
+- **No board's forced command line mentions cgroups at all.** Every
+  `BOARD_CMDLINE_ARGS` was checked: no `cgroup_no_v1`, no
+  `systemd.unified_cgroup_hierarchy`, nothing. The hierarchy is whatever init
+  chooses, and nothing in these kernels' command lines forces or forbids
+  either mode.
+- **On the 6.12 boards the v1 memory controller is not compiled at all**:
+  `# CONFIG_MEMCG_V1 is not set` on uefi-arm64 and s905x5m. So if anything
+  ever mounted v1 there, memory limits would be silently absent -- exactly the
+  failure mica-podman warns about, one layer lower. On cx3576 the symbol does
+  not exist (Linux 6.1, where the split predates it) and on uefi-x64 there is
+  no `MEMCG` to have a v1 half of.
 
 `display`, added 2026-09-20 because it would PASS today -- a capability check
 added while everything agrees is one nobody has to defend, and `BOARD_FEATURES`
