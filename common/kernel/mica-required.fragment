@@ -117,6 +117,28 @@ CONFIG_BPF_SYSCALL=y
 CONFIG_BPF_JIT=y
 CONFIG_CGROUP_BPF=y
 
+# The container LIMITS, added 2026-09-20 on the user's decision that the
+# behaviour must be uniform unless a kernel cannot support it. Every product of
+# every board declares the `containers` feature, and these four decide whether
+# a limit can be applied at all -- each of them creates a cgroup v2 knob file
+# rather than enabling a controller, which is the distinction that makes
+# reading /sys/fs/cgroup/cgroup.controllers the wrong check:
+#
+#   MEMCG              memory.max      podman --memory   (and CGROUP_WRITEBACK follows it)
+#   CFS_BANDWIDTH      cpu.max         podman --cpus
+#   IOSCHED_BFQ +      io.bfq.weight   podman --blkio-weight-device
+#   BFQ_GROUP_IOSCHED                  (plain --blkio-weight falls back to io.weight)
+#
+# They were absent on some boards only because the upstream defconfigs differ:
+# arm64's `defconfig` carries MEMCG and x86_64_defconfig does not, and nothing
+# ever compared this floor against what the products declare. Measured before
+# landing: adding them here is byte-for-byte a no-op on a board that already
+# had them, and costs +114688 bytes on uefi-x64, +67584 on cx3576.
+CONFIG_MEMCG=y
+CONFIG_CFS_BANDWIDTH=y
+CONFIG_IOSCHED_BFQ=y
+CONFIG_BFQ_GROUP_IOSCHED=y
+
 # Firewall: the kernel side of an nftables front-end, with iptables-nft as the
 # reference because that is the surface Debian's iptables package provides.
 # The citations into iptables 1.8.11 and the per-symbol table are in
