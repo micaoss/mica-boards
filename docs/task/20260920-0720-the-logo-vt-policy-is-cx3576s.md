@@ -80,3 +80,32 @@ a dead VT. That is the concrete shape of the composer defect on a generic
 board, and it is a better sentence to put to a user than "the enablement
 symlink is absent". cx3576 is the one board where tty1 is deliberately quiet
 and has something to show for it.
+
+## The cursor is part of the same decision, 2026-09-20
+
+`vt.global_cursor_default=0` was on cx3576 alone. Once the other three boards
+gained a logo they would each have blinked a cursor on top of it -- the same
+half-decision as a logo nobody can type under, and the half a user sees on
+every boot rather than in a file. All four now carry it, and the logo
+equivalence in `tests/board-contract-test.sh` counts the command-line artefact
+only when BOTH words are present, with a fixture for each half.
+
+## /etc/vconsole.conf: the question that was left, and my answer
+
+Two questions were wearing one name. The dropped-file half is dissolved --
+`mica-build` measured that `/etc/vconsole.conf` is not in the Base root at
+all, so nothing drops it. What remains is whether Mica OS should ship one.
+
+**It should, and not from here.** A keymap is not board-conditional: every
+board with a keyboard wants the same default, and by the rule this repository
+argued for the logind drop-in -- a policy belongs with whatever decides the
+capability it depends on -- a file that is identical on every board is not
+board policy. Shipping it from four board overlays would be four copies of one
+decision, which is the shape this round has spent the day removing.
+
+So the recommendation to whoever owns it (`mica-system-base` for system
+policy, or `mica-build`'s composition): ship ONE `/etc/vconsole.conf` with an
+explicit `KEYMAP=`. The reason to ship it rather than rely on the default is
+that the default is invisible: `systemd-vconsole-setup` picks `us` when the
+file is absent, so the fleet's keymap today is a fact nobody wrote down, and
+the first board that wants another one has nowhere to say so.

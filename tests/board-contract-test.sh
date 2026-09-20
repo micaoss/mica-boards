@@ -219,8 +219,12 @@ for dir in boards/*/; do
     # LOGO` in the board's configure hook, which is how cx3576 does it over a
     # vendor config that says `# CONFIG_LOGO is not set`.
     grep -rqsE '^CONFIG_LOGO=y$|--enable LOGO( |$)' "boards/${board}/kernel/" && have=$((have + 1))
+    # The command line half is two words, not one: the position AND the cursor.
+    # A logo with a cursor blinking on top of it is the same half-decision as a
+    # logo nobody can type under, and it is the half a user sees on every boot.
     case "$(sed -n 's/^BOARD_CMDLINE_ARGS=//p' "boards/${board}/board.env")" in
-    *fbcon=logo-pos:*) have=$((have + 1)) ;;
+    *fbcon=logo-pos:*vt.global_cursor_default=0* | *vt.global_cursor_default=0*fbcon=logo-pos:*)
+        have=$((have + 1)) ;;
     esac
     { [ -f "boards/${board}/kernel/hooks/prepare.sh" ] && grep -q mklogo "boards/${board}/kernel/hooks/prepare.sh"; } ||
         grep -qs mklogo "boards/${board}/kernel/Dockerfile" && have=$((have + 1))
@@ -229,7 +233,7 @@ for dir in boards/*/; do
     if { [ "${logo_flag}" = 1 ] && [ "${have}" = 5 ]; } || { [ "${logo_flag}" = 0 ] && [ "${have}" = 0 ]; }; then
         pass
     else
-        fail "${board}: BOARD_BOOT_LOGO=${logo_flag} with ${have} of the five logo artefacts present (CONFIG_LOGO, fbcon=logo-pos:, the mklogo render, the logind drop-in, the getty@tty1 mask). They move together or not at all"
+        fail "${board}: BOARD_BOOT_LOGO=${logo_flag} with ${have} of the five logo artefacts present (CONFIG_LOGO, fbcon=logo-pos: with vt.global_cursor_default=0, the mklogo render, the logind drop-in, the getty@tty1 mask). They move together or not at all"
     fi
 
     # THE UNIFIED CGROUP HIERARCHY, asserted here because no kernel symbol can

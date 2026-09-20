@@ -28,7 +28,9 @@ trap 'rm -rf "${T}"' EXIT
 artefacts() { # <board dir> -> the count, 0..5
     local d="$1" n=0
     grep -rqsE '^CONFIG_LOGO=y$|--enable LOGO( |$)' "${d}/kernel/" && n=$((n + 1))
-    case "$(sed -n 's/^BOARD_CMDLINE_ARGS=//p' "${d}/board.env")" in *fbcon=logo-pos:*) n=$((n + 1)) ;; esac
+    case "$(sed -n 's/^BOARD_CMDLINE_ARGS=//p' "${d}/board.env")" in
+    *fbcon=logo-pos:*vt.global_cursor_default=0* | *vt.global_cursor_default=0*fbcon=logo-pos:*) n=$((n + 1)) ;;
+    esac
     grep -rqs mklogo "${d}/kernel/" && n=$((n + 1))
     [ -f "${d}/package/overlay/etc/systemd/logind.conf.d/50-mica-console.conf" ] && n=$((n + 1))
     [ -L "${d}/package/overlay/etc/systemd/system/getty@tty1.service" ] && n=$((n + 1))
@@ -40,7 +42,7 @@ complete() { # <dir> <BOARD_BOOT_LOGO value>: a board with all five artefacts
     mkdir -p "${d}/kernel/config" "${d}/kernel/hooks" \
         "${d}/package/overlay/etc/systemd/logind.conf.d" \
         "${d}/package/overlay/etc/systemd/system"
-    printf 'BOARD_CMDLINE_ARGS="ro fbcon=logo-pos:center,logo-count:1"\nBOARD_BOOT_LOGO=%s\n' "${flag}" >"${d}/board.env"
+    printf 'BOARD_CMDLINE_ARGS="ro fbcon=logo-pos:center,logo-count:1 vt.global_cursor_default=0"\nBOARD_BOOT_LOGO=%s\n' "${flag}" >"${d}/board.env"
     printf 'CONFIG_LOGO=y\n' >"${d}/kernel/config/board.fragment"
     printf 'python3 mklogo.py splash.png out.ppm 720 405\n' >"${d}/kernel/hooks/prepare.sh"
     printf '[Login]\nNAutoVTs=0\nReserveVT=2\n' >"${d}/package/overlay/etc/systemd/logind.conf.d/50-mica-console.conf"
@@ -92,6 +94,10 @@ expect "${T}/no-render" refuse "the flag without the mklogo render is refused"
 complete "${T}/no-cmdline" 1
 sed -i 's/ fbcon=logo-pos:center,logo-count:1//' "${T}/no-cmdline/board.env"
 expect "${T}/no-cmdline" refuse "the flag without fbcon=logo-pos: is refused"
+
+complete "${T}/no-cursor" 1
+sed -i 's/ vt.global_cursor_default=0//' "${T}/no-cursor/board.env"
+expect "${T}/no-cursor" refuse "the flag without vt.global_cursor_default=0 is refused"
 
 # And the other direction: artefacts without the flag. This is the case that
 # would ship a policy protecting nothing -- NAutoVTs=0 on a board with no logo
