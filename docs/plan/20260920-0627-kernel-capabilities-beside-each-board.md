@@ -125,7 +125,13 @@ What this repository can contribute to it, measured:
   `BOARD_CMDLINE_ARGS` was checked: no `cgroup_no_v1`, no
   `systemd.unified_cgroup_hierarchy`, nothing. The hierarchy is whatever init
   chooses, and nothing in these kernels' command lines forces or forbids
-  either mode.
+  either mode. **Asserted since 2026-09-20** in
+  `tests/board-contract-test.sh`, with the reason beside the rule rather than
+  only the rule: a board carrying `systemd.unified_cgroup_hierarchy=0` would
+  put podman on its v1 branch, where a memory limit is discarded with a
+  warning and the container runs unbounded, and no capability row would see
+  it. It held unasserted and was one `board.env` edit away; the negative path
+  was verified by adding the word and watching the gate refuse.
 - **On the 6.12 boards the v1 memory controller is not compiled at all**:
   `# CONFIG_MEMCG_V1 is not set` on uefi-arm64 and s905x5m. So if anything
   ever mounted v1 there, memory limits would be silently absent -- exactly the
