@@ -147,6 +147,23 @@ CONFIG_BFQ_GROUP_IOSCHED=y
 # against it, no defconfig happened to carry it.
 CONFIG_BLK_DEV_THROTTLING=y
 
+# io.weight and io.latency, 2026-09-20, by the same test and measured rather
+# than reasoned. systemd v257's src/core/cgroup.c writes `io.weight`
+# (IOWeight=, IODeviceWeight=, lines 1734 and 1995) and `io.latency`
+# (IODeviceLatencyTargetSec=, line 1772); on the kernel side `io.weight` is
+# registered by blk-iocost.c's ioc_files[] (`.name = "weight"`, line 3515) and
+# `io.latency` by the iolatency policy. So a unit key a product can set
+# reaches both files, and both were scattered: IOCOST on uefi-x64 and s905x5m,
+# IOLATENCY on uefi-x64 alone.
+#
+# BLK_CGROUP_IOPRIO is NOT here, by the same measurement: systemd writes no
+# `io.prio` file (0 occurrences in that source) and podman has no flag for it,
+# so nothing a product can set reaches it. It is turned OFF uniformly below
+# rather than left y on two boards by defconfig accident.
+CONFIG_BLK_CGROUP_IOCOST=y
+CONFIG_BLK_CGROUP_IOLATENCY=y
+# CONFIG_BLK_CGROUP_IOPRIO is not set
+
 # Firewall: the kernel side of an nftables front-end, with iptables-nft as the
 # reference because that is the surface Debian's iptables package provides.
 # The citations into iptables 1.8.11 and the per-symbol table are in

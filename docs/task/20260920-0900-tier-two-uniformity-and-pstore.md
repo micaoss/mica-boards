@@ -27,11 +27,23 @@ symbol is not offered:
 Applying the test the coordinator set -- ON if any podman or systemd key a
 product can set reaches the controller, uniformly OFF otherwise:
 
-- **Eight are OFF by that test.** No podman flag and no systemd unit key
+- **Seven are OFF by that test.** No podman flag and no systemd unit key
   reaches `hugetlb.*`, `rdma.max`, `misc.max`, `net_prio.ifpriomap` or
-  `net_cls.classid`; `IOWeight=` reaches `io.weight` rather than iocost;
-  TASKSTATS is delay accounting for tools this workspace does not ship; and
-  `CGROUP_PERF` is a perf_event cgroup nothing here programs.
+  `net_cls.classid`; TASKSTATS is delay accounting for tools this workspace
+  does not ship; and `CGROUP_PERF` is a perf_event cgroup nothing here
+  programs.
+- **`BLK_CGROUP_IOCOST` was in that list and I had it WRONG.** I wrote that
+  "`IOWeight=` reaches `io.weight` rather than iocost", which is two claims
+  and the second is false: `io.weight` IS iocost's file. Measured after the
+  coordinator pointed at it rather than asserted -- `block/blk-iocost.c` at
+  v6.12.107 registers `.name = "weight"` in `ioc_files[]` (line 3515), and
+  systemd v257's `src/core/cgroup.c` writes `io.weight` at lines 1734 and
+  1995. So a product-settable key reaches it and the test resolves ON. The
+  same measurement found `io.latency` written at line 1772
+  (`IODeviceLatencyTargetSec=`), so `BLK_CGROUP_IOLATENCY` is ON too, and
+  `io.prio` written NOWHERE in that source, so `BLK_CGROUP_IOPRIO` is OFF.
+  All three landed in the floor; the first two were scattered and the third
+  was `y` on two boards by accident.
 - **PSI is the one with a key, and therefore the one real question.**
   `systemd-oomd` and the `ManagedOOMMemoryPressure=` / `ManagedOOMSwap=` unit
   keys are built on pressure stall information: with `CONFIG_PSI=n` those keys
