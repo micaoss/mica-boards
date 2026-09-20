@@ -157,6 +157,17 @@ VT survives that handover is a runtime fact no config expresses. A capability
 check catches a board that CANNOT do a thing; only a bench or a guest proves
 that it DOES.
 
+**And the same shape one layer down, for whoever builds the runtime
+counterpart of this table: THE CONTROLLER LIST IS A NECESSARY CONDITION FOR A
+LIMIT AND NOT A PROOF OF ONE.** Measured in a booted uefi-x64 guest on
+2026-09-20: `/sys/fs/cgroup/cgroup.controllers` lists `cpu`, and `cpu.max`
+does not exist, because `CFS_BANDWIDTH` is what creates the knob rather than
+what enables the controller. The obvious runtime probe -- read the controller
+list once, conclude the limit works -- is authoritative-looking and wrong for
+exactly the case this table was written to catch. A runtime check must assert
+the KNOB FILE (`memory.max`, `cpu.max`, `pids.max`, `io.max`), never the
+controller name.
+
 **2. Each board's kernel component publishes what it provides.** The build
 already has the resolved config in hand where the floor is asserted; it emits
 `kernel/capabilities.tsv` there -- the capability names from the vocabulary
