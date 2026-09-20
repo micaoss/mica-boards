@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-09-20 [progress]
+
+First hardware observation of Mica OS on cx3576, read out of the console
+capture rather than summarised: the vendor loader verified this project's key
+on real silicon (`sha256,rsa2048:mica+ OK` for kernel, fdt and ramdisk), the
+signed command line carried `dm_verity.require_signatures=1` and
+`mica.profile=prod`, native init selected and verified its deployment, and
+`mica-health.service` confirmed it. The kernel identifies itself as `6.1.115`
+built by the bsp toolchain with `#1 SMP @1577836800` -- the `kernel.release`
+`cx3576.20260917-1007` published, pinned by `mica-build`'s
+`cx3576.20260919-2356`, so the run binds to published bytes. `evidence.json`
+records the observation and stays I1: the capture is a loader-initiated warm
+reset, so it is neither the cold-boot nor the warm-boot qualification row, and
+the enforcement half of I3 -- an unsigned FIT refused on the same bench -- is
+not observed. Recorded in
+`docs/task/20260920-cx3576-first-hardware-capture.md`, which also lists what
+the capture does not establish.
+
+
 ## 2026-09-19 [progress]
 
 `s905x5m.20260919-2259`, this board's first release as a release target, from
