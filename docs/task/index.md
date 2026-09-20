@@ -9,3 +9,4 @@
 - [20260920-cx3576-first-hardware-capture](20260920-cx3576-first-hardware-capture.md) -- open
 - [20260920-user-namespaces-and-container-kernel-facts](20260920-user-namespaces-and-container-kernel-facts.md) -- done
 - [20260920-the-floor-and-the-declared-features](20260920-the-floor-and-the-declared-features.md) -- done
+- [20260920-0640-can-these-boards-render-a-virtual-terminal](20260920-0640-can-these-boards-render-a-virtual-terminal.md) -- done
