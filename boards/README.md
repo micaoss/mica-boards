@@ -137,3 +137,21 @@ digest-pinned mica-build-env `bsp` image of `locks/mica-build-env.lock` rather
 than installing it): the proof of a change to a board's build is its kernel and U-Boot
 byte-identical to the build before it, where the change was not meant to move
 them.
+
+## The boot logo and tty1
+
+`BOARD_BOOT_LOGO=1` is one switch behind five artefacts that move together
+(`tests/board-contract-test.sh`, with the refusals exercised over synthetic
+boards in `tests/logo-equivalence-fixtures.sh`): `CONFIG_LOGO` and
+`CONFIG_LOGO_LINUX_CLUT224` in the board's fragments, the `mklogo.py` render
+where the board renders one, `fbcon=logo-pos:center,logo-count:1` with
+`vt.global_cursor_default=0` in `BOARD_CMDLINE_ARGS`, the logind drop-in,
+and `/etc/systemd/system/getty@tty1.service` as a symlink to `/dev/null`.
+
+**The mask and the preset are not the same rule, and the mask is the stronger
+one.** A preset decides whether a unit is ENABLED; the mask decides whether it
+can be STARTED AT ALL, including by logind's on-demand `autovt@tty1`, which no
+preset touches -- a disabled template remains startable. So if anybody ever
+wants a getty on tty1 for one board, the preset would let them and the mask
+will not, and the failure will look like the preset being ignored. **Enabling
+tty1 means REMOVING THE MASK, not only changing the preset.**
