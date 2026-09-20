@@ -16,7 +16,7 @@
 # The boards, discovered: a directory with a board.env. Nothing here names one.
 BOARDS := $(patsubst boards/%/board.env,%,$(wildcard boards/*/board.env))
 
-.PHONY: help deps deps-check locks-test mirror-test logo-fixtures-test floor-fixtures-test preflight pool package-gate offline publish publish-test version-guard-test ci-outputs-test trust-stage-test uboot-env-test board-contract-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test lint check
+.PHONY: help deps deps-check vectors-sync-test locks-test mirror-test logo-fixtures-test floor-fixtures-test preflight pool package-gate offline publish publish-test version-guard-test ci-outputs-test trust-stage-test uboot-env-test board-contract-test kernel-config-test kernel-cmdline-test bench-collector-test mac-stable-test can-network-test gadget-configfs-test flash-verify-test wireless-test lint check
 
 help:
 	@echo "  deps                verify locks/ against the releases it pins; deps-check checks it offline"
@@ -35,6 +35,7 @@ help:
 	@echo "  board-contract-test every board declares BOARD_FEATURES and its images.tsv, carries its own kernel and U-Boot build and manifests/, and is listed in boards/boards.tsv with its outputs.tsv"
 	@echo "  kernel-config-test  every board's committed kernel config carries the shared floor (common/kernel/kernel-config-test.sh)"
 	@echo "  locks-test          the lock checker over the release-lock vectors, the committed locks and every Dockerfile's syntax pin"
+	@echo "  vectors-sync-test   tests/vectors/ against mica at tools/vectors.pin, both directions (network)"
 	@echo "  lint                shell hygiene of the tree"
 	@echo "  check               lint, board-contract-test, kernel-config-test and every board's own tests"
 
@@ -44,6 +45,11 @@ deps-check:
 	bash tools/locks.sh check
 locks-test:
 	bash tests/locks-test.sh
+# The one gate here that reaches the network, so it sits beside deps rather than
+# in check: tests/vectors/ is mica's vector directory at tools/vectors.pin minus
+# the paths tests/vectors/excluded.tsv declares, compared as blobs both ways.
+vectors-sync-test:
+	bash tests/vectors-sync-test.sh
 # The fetch-time mirror hook, against a local server that serves mica-res's
 # contract: no network, and the fallback is what most cases prove.
 mirror-test:

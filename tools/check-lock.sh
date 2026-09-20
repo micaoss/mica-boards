@@ -6,6 +6,7 @@
 #   bash tools/check-lock.sh lock <file>             a release lock (1.1 to 1.5)
 #   bash tools/check-lock.sh upstream <file>         locks/upstream.lock (4.1)
 #   bash tools/check-lock.sh pins <dir> ci|local     <dir>/*.lock and <dir>/pins/*.pin (4)
+#   bash tools/check-lock.sh vectors-pin <file>      tools/vectors.pin (mica-vectors-pin v1)
 #
 # tools/locks.sh runs it over locks/, tools/release-lock.sh over the
 # lock it writes, tests/locks-test.sh over the specification's vectors.
@@ -13,11 +14,38 @@
 set -euo pipefail
 export LC_ALL=C
 
-usage() { echo "usage: bash tools/check-lock.sh lock|upstream <file> | pins <dir> ci|local" >&2; exit 2; }
+usage() { echo "usage: bash tools/check-lock.sh lock|upstream|vectors-pin <file> | pins <dir> ci|local" >&2; exit 2; }
 refuse() { echo "refused $1"; exit 1; }
 
 # The repositories whose releases are scoped (<scope>.<YYYYMMDD-HHMM>): all of theirs, no other's.
 SCOPED_REPOSITORIES=" mica-boards mica-build "
+
+# mica-vectors-pin v1: the commit of the repository this repository's lock
+# vectors were taken from. Exactly two keys in this order and no others -- a
+# RELEASE= key here would make it look like a producer pin, and mica publishes
+# no releases. The BASENAME vectors.pin is uniform across repositories on
+# purpose: it turns "find every reader's copy" into one command.
+if [ "${1-}" = vectors-pin ]; then
+    [ "$#" -eq 2 ] || usage
+    FILE="$2"
+    [ -f "${FILE}" ] || { echo "error: ${FILE} is not a file" >&2; exit 2; }
+    iconv -f UTF-8 -t UTF-8 "${FILE}" >/dev/null 2>&1 || refuse encoding
+    [ -s "${FILE}" ] && [ "$(tail -c1 "${FILE}" | od -An -tx1 | tr -d ' ')" = 0a ] || refuse encoding
+    [ "$(tr -dc '' <"${FILE}" | wc -c)" = 0 ] || refuse encoding
+    mapfile -t PLINES <"${FILE}"
+    [ "${PLINES[0]-}" = '# mica-vectors-pin v1' ] || refuse header
+    PKEYS=()
+    for line in ${PLINES[@]+"${PLINES[@]:1}"}; do
+        case "${line}" in '#'*) continue ;; esac
+        [ -n "${line}" ] || refuse encoding
+        PKEYS+=("${line}")
+    done
+    [ "${#PKEYS[@]}" = 2 ] || refuse pin-format
+    [ "${PKEYS[0]%%=*}" = REPOSITORY ] && [ "${PKEYS[1]%%=*}" = COMMIT ] || refuse pin-format
+    [[ "${PKEYS[0]#*=}" =~ ^[a-z0-9][a-z0-9-]*$ ]] && [[ "${PKEYS[1]#*=}" =~ ^[0-9a-f]{40}$ ]] || refuse field-value
+    echo valid
+    exit 0
+fi
 
 # 4: every producer lock has one pin naming it and its release; upstream.lock has none.
 # A scoped input is locks/<repository>.<scope>.lock with pins/<repository>.<scope>.pin.
@@ -88,8 +116,8 @@ MODE="$1"
 FILE="$2"
 [ -f "${FILE}" ] || { echo "error: ${FILE} is not a file" >&2; exit 2; }
 
-KINDS=(release image pool package board upstream apt)
-declare -A COLUMNS=([release]=4 [image]=5 [pool]=3 [package]=5 [board]=5 [upstream]=7 [apt]=5)
+KINDS=(release image pool package board upstream apt data)
+declare -A COLUMNS=([release]=4 [image]=5 [pool]=3 [package]=5 [board]=5 [upstream]=7 [apt]=5 [data]=4)
 kind_index() { local i; for i in "${!KINDS[@]}"; do [ "${KINDS[$i]}" != "$1" ] || { echo "$i"; return; }; done; }
 
 # 1.1: UTF-8, LF with a final LF, no CR, header, no empty line, leading space or trailing tab.
@@ -214,7 +242,7 @@ reference() {
     TAG="${BASH_REMATCH[3]#:}"
 }
 
-declare -A KEYS=() POOLS=()
+declare -A KEYS=() POOLS=() DATA_FILES=()
 SORTKEYS=() PACKAGE_ARCHES=() BASE_ONLY=0 BOARD_COMPONENTS=""
 for row in "${ROWS[@]:1}"; do
     split "${row}"
@@ -267,6 +295,20 @@ for row in "${ROWS[@]:1}"; do
         [[ "${FIELDS[1]}" == https://* ]] && [ -n "${FIELDS[2]}" ] && [ -n "${FIELDS[3]}" ] && [[ "${FIELDS[4]}" == /* ]] || refuse field-value
         key=""
         BASE_ONLY=1
+        ;;
+    data)
+        # data <name> <file> <sha256> (1.2.4): a release asset that is neither
+        # an image nor a package -- something a producer computed about its own
+        # output that a consumer must be able to read reproducibly from a
+        # pinned release. NOT base-only: mica-system-base is the only producer
+        # carrying one today, and a lock this repository PINS may grow one
+        # tomorrow. The name is the key; two rows may not name one FILE either,
+        # which is a separate rule from the duplicate key and is what
+        # data-file refuses.
+        [[ "${FIELDS[1]}" =~ ${NAME_RE} ]] && [[ "${FIELDS[2]}" =~ ${NAME_RE} ]] && [[ "${FIELDS[3]}" =~ ${SHA_RE} ]] || refuse field-value
+        [ -z "${DATA_FILES[${FIELDS[2]}]-}" ] || refuse data-file
+        DATA_FILES["${FIELDS[2]}"]=1
+        key="${FIELDS[1]}"
         ;;
     *) refuse release-row ;;
     esac

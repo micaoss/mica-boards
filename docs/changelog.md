@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-09-20 17:30 [progress]
+
+The lock vectors are mica's, at the commit `tools/vectors.pin` names, with
+`tests/vectors/excluded.tsv` declaring the paths this repository does not
+carry and one reason each. `tests/vectors-sync-test.sh` (`make
+vectors-sync-test`, CI beside `make deps` because it is the one gate that
+reaches the network) fetches that commit and refuses any other difference in
+either direction, compared as blobs; `expected.tsv` is rebuilt from canonical
+rather than copied, and all five of its refusals were observed before it was
+recorded. The refresh found the copy was canonical at `f742615` minus 14
+files with EIGHT fixtures still naming `x64`, the board this repository
+retired on 2026-09-16. `tools/check-lock.sh` gained the `data` row
+(release-lock.md 1.2.4, not base-only) and a `vectors-pin` mode for the pin
+format, and the `repos/` vectors -- carried and skipped by the only thing
+that read them -- are declared rather than counted. 82 assertions to 95, 64
+vectors to 74. Recorded in
+`docs/task/20260920-1730-the-vectors-are-read-from-mica-at-a-pin.md`.
+
 ## 2026-09-20 17:00 [progress]
 
 The shared kernel floor is a file row of every board bundle:

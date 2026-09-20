@@ -1,18 +1,17 @@
 # mica-vectors v1: path, result (valid|refused), rule, mode (ci|local|offline|-)
-# Copied from mica:docs/design/release-lock/vectors/ at commit f742615 (2026-09-16):
-# every file here is byte-identical to that revision, 14 of its files are absent,
-# and lock/valid/mica-boards.uefi-x64.lock was re-taken from 258f93a (2026-09-20).
-# 64 non-comment rows here against canonical's 84. The `index`, `update`, `bundle` and
-# `asset` families are outside this repository's forms: it pins one producer
-# (mica-build-env, unscoped), produces scoped board locks, reads no index and consumes no
-# product release. The six `data` vectors ARE inside them and are the derived gap -- any
-# producer may carry data rows, and this reader would refuse one as kind-unknown.
-# See docs/task/20260920-0820-my-vectors-are-a-stale-copy.md.
+# NOT A COPY WITH A PROVENANCE COMMENT. This table is DERIVED: it is canonical
+# expected.tsv at tools/vectors.pin with the rows of tests/vectors/excluded.tsv
+# removed, and tests/vectors-sync-test.sh rebuilds it and refuses a difference.
+# A provenance line is a claim nobody rereads -- mica-system-base carried one
+# naming a commit where the file had 69 rows while its vectors were byte-current
+# (2026-09-20), and this repository carried one naming f742615 while eight of its
+# own fixtures still used the board name the rename retired on 2026-09-16.
 lock/valid/mica-build-env.lock	valid	-	-
 lock/valid/mica-core.lock	valid	-	-
 lock/valid/mica-boards.uefi-x64.lock	valid	-	-
 lock/valid/mica-system-base.lock	valid	-	-
 lock/valid/offline-mica-core.lock	valid	-	-
+lock/valid/mica-system-base-data.lock	valid	-	-
 lock/refused/header.lock	refused	header	-
 lock/refused/empty-line.lock	refused	encoding	-
 lock/refused/trailing-tab.lock	refused	encoding	-
@@ -22,8 +21,8 @@ lock/refused/release-not-first.lock	refused	release-row	-
 lock/refused/release-missing.lock	refused	release-row	-
 lock/refused/release-value.lock	refused	field-value	-
 lock/refused/scoped-release-not-allowed.lock	refused	release-scope	-
-lock/refused/release-slash.lock	refused	field-value	-
 lock/refused/unscoped-release.lock	refused	release-scope	-
+lock/refused/release-slash.lock	refused	field-value	-
 lock/refused/scope-content-board.lock	refused	scope-content	-
 lock/refused/scope-content-pool.lock	refused	scope-content	-
 lock/refused/scope-content-tag.lock	refused	scope-content	-
@@ -44,6 +43,11 @@ lock/refused/upstream-image-without-digest.lock	refused	reference-digest	-
 lock/refused/upstream-outside-base.lock	refused	base-only-kind	-
 lock/refused/package-without-pool.lock	refused	package-without-pool	-
 lock/refused/unsorted.lock	refused	sort-order	-
+lock/refused/data-file.lock	refused	data-file	-
+lock/refused/data-columns.lock	refused	column-count	-
+lock/refused/data-name.lock	refused	field-value	-
+lock/refused/data-duplicate.lock	refused	duplicate-key	-
+lock/refused/data-sort-order.lock	refused	sort-order	-
 upstream/valid/upstream.lock	valid	-	-
 upstream/refused/release-row.lock	refused	upstream-release-row	-
 upstream/refused/other-kind.lock	refused	kind-unknown	-
@@ -53,6 +57,13 @@ upstream/refused/image-without-digest.lock	refused	reference-digest	-
 upstream/refused/source-without-sha256.lock	refused	column-count	-
 upstream/refused/git-short-commit.lock	refused	field-value	-
 upstream/refused/unsorted.lock	refused	sort-order	-
+vectors-pin/valid/vectors.pin	valid	-	-
+vectors-pin/valid/commented.pin	valid	-	-
+vectors-pin/refused/header.pin	refused	header	-
+vectors-pin/refused/key-order.pin	refused	pin-format	-
+vectors-pin/refused/extra-key.pin	refused	pin-format	-
+vectors-pin/refused/short-commit.pin	refused	field-value	-
+vectors-pin/refused/no-final-lf.pin	refused	encoding	-
 pins/valid/release	valid	-	ci
 pins/valid/offline-checkout	valid	-	local
 pins/valid/scoped	valid	-	ci
@@ -69,6 +80,3 @@ pins/refused/lock-invalid	refused	lock-invalid	local
 pins/refused/scope-file-name	refused	scope-mismatch	local
 pins/refused/scope-release-row	refused	scope-mismatch	local
 pins/refused/scope-not-allowed	refused	release-scope	local
-repos/cache-hit	valid	-	offline
-repos/cache-corrupt	refused	cache-corrupt	offline
-repos/offline-miss	refused	offline-miss	offline

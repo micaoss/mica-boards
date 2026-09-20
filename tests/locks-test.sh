@@ -21,9 +21,14 @@ mkdir -p "${REPO_ROOT}/tmp"
 T="$(mktemp -d "${REPO_ROOT}/tmp/locks-test.XXXXXX")"
 trap 'rm -rf "${T}"' EXIT
 
-# The vectors, except repos/: this repository has no source cache (repos.sh) yet.
+# Every vector in the table, with no skip: the repos/ family used to be carried
+# and skipped here for want of a tools/repos.sh, which is coverage that counts
+# and asserts nothing. It is declared in tests/vectors/excluded.tsv instead, so
+# a row this loop cannot run is now a difference the sync test refuses.
+VECTOR_ROWS=0
 while IFS="${TAB}" read -r vector want rule mode; do
-    case "${vector}" in '#'* | repos/*) continue ;; esac
+    case "${vector}" in '#'*) continue ;; esac
+    VECTOR_ROWS=$((VECTOR_ROWS + 1))
     case "${vector}" in
     pins/*) got="$(bash "${CHECK}" pins "${VECTORS}/${vector}" "${mode}" 2>&1 || true)" ;;
     *) got="$(bash "${CHECK}" "${vector%%/*}" "${VECTORS}/${vector}" 2>&1 || true)" ;;
@@ -32,6 +37,7 @@ while IFS="${TAB}" read -r vector want rule mode; do
     [ "${want}" = valid ] || expected="refused ${rule}"
     if [ "${got}" = "${expected}" ]; then pass "vector ${vector}: ${expected}"; else fail "vector ${vector}: '${got}', want '${expected}'"; fi
 done <"${VECTORS}/expected.tsv"
+[ "${VECTOR_ROWS}" -gt 0 ] || fail "tests/vectors/expected.tsv named no vector, so the loop above asserted nothing"
 
 expect() { # <0|1> <case> <needle> <command>...
     local want="$1" name="$2" needle="$3" rc=0 out

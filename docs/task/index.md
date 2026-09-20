@@ -18,3 +18,4 @@
 - [20260920-0900-tier-two-uniformity-and-pstore](20260920-0900-tier-two-uniformity-and-pstore.md) -- open
 - [20260920-1600-a-fragment-off-line-is-a-request](20260920-1600-a-fragment-off-line-is-a-request.md) -- done
 - [20260920-1700-the-floor-travels-with-the-config](20260920-1700-the-floor-travels-with-the-config.md) -- done
+- [20260920-1730-the-vectors-are-read-from-mica-at-a-pin](20260920-1730-the-vectors-are-read-from-mica-at-a-pin.md) -- done
