@@ -23,6 +23,31 @@
 # TLS failure all mean "not mirrored", and the pinned URL is used instead. The
 # mirror answers from CI and does not answer from every network, so no build may
 # wait on it: the connect timeout is three seconds and there is no retry.
+#
+# WHAT THIS DEPENDS ON, AND WHAT ITS LOSS LOOKS LIKE -- WRITTEN HERE BECAUSE
+# NEITHER SIDE CAN SEE BOTH ENDS. Two HTTP routes of mica-res, probed
+# 2026-09-20 and each answering through one redirect to dl.res.micaos.dev:
+#
+#   blob/<aa>/<sha256>                      fetch-archive.sh, a `source` row
+#   upstream/git/<name>/<commit>.json       fetch-source.sh, a `git` row, and
+#                                           its ordered .pack.NN chunks
+#
+# THEY ARE ROUTES, NOT OBJECTS. `/blob/` resolves a digest against mica-res's
+# catalogue and redirects; the user deleted the stored `blob/` prefix from the
+# bucket on 2026-09-20 and both routes still answer, which is why "the v1
+# layout is retired" is true of the objects and false of the paths this file
+# asks for. MICA_MIRROR is a repository variable here, so this is a live
+# dependency of every CI build and not a local convenience.
+#
+# IF A ROUTE IS EVER REMOVED, NOTHING HERE TURNS RED. Every miss falls back to
+# the vendor, the sha256 still proves the bytes, and the build succeeds --
+# slower, and with the offline bundle quietly losing a source. The only signal
+# is one line per object naming the status ("not mirrored (404), fetching
+# <url>"), which is a line nobody reads rather than no line at all. mica-res
+# defends its half: its changelog says that deleting the `/blob/` route breaks
+# this hook, and its sync.yml probes that exact path deliberately. This comment
+# is the other half, because a constraint only its holder can verify decays
+# silently, and neither repository can hold both ends.
 
 MICA_MIRROR_CONNECT_TIMEOUT="${MICA_MIRROR_CONNECT_TIMEOUT:-3}"
 
