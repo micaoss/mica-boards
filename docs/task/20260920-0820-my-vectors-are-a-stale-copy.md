@@ -20,14 +20,24 @@ snapshot in `mica`'s history:
     canonical f742615  2026-09-16  78 rows
     canonical 258f93a  2026-09-20  84 rows
 
-**My set is canonical at `af717a6` plus exactly one file**:
-`lock/refused/release-slash.lock`, which I added by hand on 2026-09-16 during
-the dot cut-over. 63 + 1 = 64.
+**Corrected by a byte comparison, which gave a different and better answer
+than the name comparison did.** Comparing the FILES rather than the list of
+names, against every candidate revision:
 
-So it is not a subset anyone chose. It is 2026-09-15's copy with one vector
-added for the change I happened to be making -- and that partial refresh is
-what made it look tended. The suite stayed green throughout, because the
-fixtures and the reader agree with each other.
+    vs af717a6   content differs in 20 files (the slash-form release values)
+    vs f742615   14 files only in canonical, 0 only in mine, and every file I
+                 have is BYTE-IDENTICAL
+
+**So the copy is canonical at `f742615` (2026-09-16, the dot-form commit),
+minus 14 files** -- not `af717a6` plus a hand-added vector, which is what the
+name comparison suggested and what I reported first. The names matched an
+older revision by coincidence: I re-copied the dot-form files at the
+cut-over, so the CONTENT moved forward while the SET stayed where it was.
+
+That is the aperture family again, and in the same shape as the s905x5m
+kernels of the same morning: **a comparison over names is coarser than a
+comparison over bytes, and it returned a confident wrong provenance.** The
+byte check is three lines and settles it.
 
 ## The defect the count did not show
 
@@ -68,3 +78,31 @@ taken from, the one file added by hand, and the families it deliberately does
 not carry. Until the ruled mechanism lands -- read the vectors out of mica at
 a pinned commit and refuse a difference -- that header is what makes "stale"
 answerable by anyone reading the file, which was the point of the rule.
+
+## The required subset, re-derived with the third clause
+
+The coordinator's rule gained a clause on 2026-09-20 after mica-core found the
+hole: the subset is what you PIN, plus what you PRODUCE, **plus the vectors
+that say what your own forms MAY NOT BE**. Re-derived here:
+
+- **the refusal half is already complete.** This repository holds
+  `scoped-release-not-allowed`, `unscoped-release`, `release-slash`, the three
+  `scope-content-*`, `pins/refused/scope-not-allowed`, `scope-file-name` and
+  `scope-release-row`. It both consumes an unscoped producer and produces
+  scoped releases, so both directions of the scope rules are its forms, and it
+  has the vectors for both. That is luck rather than derivation -- they came
+  with the copy -- but it is the state.
+- **the 14 files missing against `f742615` are outside the set**: the seven
+  `index` refusals (no index is read here), `update-full`, `update-kind`,
+  `asset-without-bundle`, `bundle-without-product`, `build-only-kind` (product
+  forms this repository never meets) and the two `mica-build` valid locks (a
+  producer it does not pin).
+- **the six `data` vectors ARE inside the set**, by mica-podman's reasoning
+  that any producer may now carry data rows: `mica-build-env` is pinned here,
+  and if its lock ever carries one, `tools/check-lock.sh` refuses it as
+  `kind-unknown` -- loud, and wrong once the row is legitimate.
+
+So the derived gap is exactly six vectors and the reader support behind them,
+and it lands with the authorised mechanism (read the vectors out of mica at a
+pinned commit, compare the whole set in both directions) after the kernel
+round.

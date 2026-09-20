@@ -1,12 +1,13 @@
 # mica-vectors v1: path, result (valid|refused), rule, mode (ci|local|offline|-)
-# Copied from mica:docs/design/release-lock/vectors/ at commit af717a6 (2026-09-15),
-# plus lock/refused/release-slash.lock added by hand at the dot cut-over (2026-09-16)
-# and lock/valid/mica-boards.uefi-x64.lock re-taken from canonical at 258f93a (2026-09-20).
-# 64 non-comment rows here against canonical's 84: this copy carries no `data`, `index`,
-# `update`, `bundle` or `asset` vectors, because this repository pins one producer
-# (mica-build-env, unscoped) and produces scoped board locks, and meets none of those
-# forms. It is a STALE COPY and not a chosen subset, and the difference was invisible
-# until someone counted: see docs/task/20260920-0820-my-vectors-are-a-stale-copy.md.
+# Copied from mica:docs/design/release-lock/vectors/ at commit f742615 (2026-09-16):
+# every file here is byte-identical to that revision, 14 of its files are absent,
+# and lock/valid/mica-boards.uefi-x64.lock was re-taken from 258f93a (2026-09-20).
+# 64 non-comment rows here against canonical's 84. The `index`, `update`, `bundle` and
+# `asset` families are outside this repository's forms: it pins one producer
+# (mica-build-env, unscoped), produces scoped board locks, reads no index and consumes no
+# product release. The six `data` vectors ARE inside them and are the derived gap -- any
+# producer may carry data rows, and this reader would refuse one as kind-unknown.
+# See docs/task/20260920-0820-my-vectors-are-a-stale-copy.md.
 lock/valid/mica-build-env.lock	valid	-	-
 lock/valid/mica-core.lock	valid	-	-
 lock/valid/mica-boards.uefi-x64.lock	valid	-	-
