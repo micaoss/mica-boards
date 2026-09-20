@@ -345,12 +345,103 @@ CONFIG_CRYPTO_AES_ARM64_CE_BLK=y
 # CONFIG_CAN is not set
 # CONFIG_NET_DSA is not set
 
-# display, sound, media and input beyond the console
-# CONFIG_DRM is not set
-# CONFIG_FB is not set
+# sound and media: this machine attaches neither.
 # CONFIG_SOUND is not set
 # CONFIG_MEDIA_SUPPORT is not set
-# CONFIG_INPUT_KEYBOARD is not set
+
+# THE DISPLAY, added 2026-09-20 on the user's decision ("arm64也加回去
+# framebuffer"), reversing the display half of the trim below. The scope is the
+# whole capability rather than the word: a logo nobody can type under is half a
+# decision, so the framebuffer, the console, a driver that BINDS and the
+# keyboard path all come together.
+#
+# SYSFB_SIMPLEFB is the one that is easy to leave out and fatal to: on an arm64
+# UEFI machine the GOP framebuffer reaches Linux as a sysfb platform device, and
+# without it simpledrm has nothing to bind to and the screen stays blank with
+# every other symbol set. DRM_FBDEV_EMULATION is the second: fbcon needs a
+# framebuffer device after a DRM driver takes the hardware, and uefi-x64 is the
+# board that shows what its absence looks like.
+#
+# Measured, against a control that byte-reproduced the published Image:
+# +1812480 bytes, +7.39 %, for this block with the logo and CFS_BANDWIDTH.
+# Nothing here sits on the root-mount path -- this board boots root=/dev/dm-0
+# from a dm-mod.create= table with no initramfs -- so it is additive, and every
+# line is =y because a module could not load before the root exists.
+CONFIG_FB=y
+CONFIG_FRAMEBUFFER_CONSOLE=y
+CONFIG_SYSFB_SIMPLEFB=y
+CONFIG_DRM=y
+CONFIG_DRM_SIMPLEDRM=y
+CONFIG_DRM_FBDEV_EMULATION=y
+CONFIG_DRM_VIRTIO_GPU=y
+CONFIG_INPUT_KEYBOARD=y
+
+# And the display menu's own world, which arm64 `defconfig` opens as soon as
+# DRM is on: panels, bridges, SoC display controllers, CEC and the TTM/VRAM
+# helpers of discrete GPUs. A generic UEFI/ACPI machine attaches none of them
+# -- it has a firmware framebuffer and, in a guest, virtio-gpu -- and this
+# board's rule is that what it does not attach is not built. Without this
+# block the display costs 72 additional modules, several of them SoC PMIC and
+# battery drivers that arrived through the same menu.
+# The helpers cannot be switched off directly -- they are `select`ed -- so the
+# drivers that select them are what is named here. With those off, TTM, the
+# VRAM and DMA helpers, the DP AUX bus and CEC fall away on their own.
+# CONFIG_DRM_PANEL is not set
+# CONFIG_DRM_BRIDGE is not set
+# CONFIG_DRM_NOUVEAU is not set
+# CONFIG_DRM_ETNAVIV is not set
+# CONFIG_DRM_LIMA is not set
+# CONFIG_DRM_PANFROST is not set
+# CONFIG_DRM_PANTHOR is not set
+# CONFIG_DRM_POWERVR is not set
+# CONFIG_DRM_HISI_HIBMC is not set
+# CONFIG_DRM_HISI_KIRIN is not set
+# CONFIG_DRM_KOMEDA is not set
+# CONFIG_DRM_HDLCD is not set
+# CONFIG_DRM_PL111 is not set
+# CONFIG_DRM_TIDSS is not set
+# CONFIG_DRM_I2C_CH7006 is not set
+# CONFIG_DRM_I2C_SIL164 is not set
+# CONFIG_DRM_I2C_NXP_TDA998X is not set
+# CONFIG_DRM_MALI_DISPLAY is not set
+# CONFIG_DRM_PANEL_TRULY_NT35597_WQXGA is not set
+# CONFIG_DRM_AUX_BRIDGE is not set
+# CONFIG_DRM_AUX_HPD_BRIDGE is not set
+# CONFIG_DRM_DISPLAY_CONNECTOR is not set
+# CONFIG_DRM_LONTIUM_LT8912B is not set
+# CONFIG_DRM_LONTIUM_LT9611 is not set
+# CONFIG_DRM_LONTIUM_LT9611UXC is not set
+# CONFIG_DRM_ITE_IT66121 is not set
+# CONFIG_DRM_NWL_MIPI_DSI is not set
+# CONFIG_DRM_PARADE_PS8640 is not set
+# CONFIG_DRM_SAMSUNG_DSIM is not set
+# CONFIG_DRM_SII902X is not set
+# CONFIG_DRM_SIMPLE_BRIDGE is not set
+# CONFIG_DRM_THINE_THC63LVD1024 is not set
+# CONFIG_DRM_TOSHIBA_TC358767 is not set
+# CONFIG_DRM_TOSHIBA_TC358768 is not set
+# CONFIG_DRM_TI_TFP410 is not set
+# CONFIG_DRM_TI_SN65DSI83 is not set
+# CONFIG_DRM_TI_SN65DSI86 is not set
+# CONFIG_DRM_ANALOGIX_ANX7625 is not set
+# CONFIG_DRM_I2C_ADV7511 is not set
+# CONFIG_DRM_CDNS_MHDP8546 is not set
+# The USB-C DisplayPort alt-mode path, which pulls the Qualcomm PMIC glink
+# stack in behind it: a machine with a firmware framebuffer does not negotiate
+# a display over Type-C.
+# CONFIG_TYPEC_DP_ALTMODE is not set
+# CONFIG_UCSI_PMIC_GLINK is not set
+# CONFIG_QCOM_PMIC_GLINK is not set
+# CONFIG_COMMON_CLK_BD718XX is not set
+# One module survives this block: DRM_AUX_BRIDGE, selected by the USB-C mux
+# drivers this board already carried before the display existed. Removing it
+# means deciding about that stack, which is a separate question from the
+# display and is not decided here.
+# CONFIG_KEYBOARD_ATKBD is not set
+# CONFIG_KEYBOARD_GPIO is not set
+# CONFIG_KEYBOARD_GPIO_POLLED is not set
+# CONFIG_KEYBOARD_MTK_PMIC is not set
+# CONFIG_BATTERY_QCOM_BATTMGR is not set
 # CONFIG_INPUT_MOUSE is not set
 # CONFIG_INPUT_TOUCHSCREEN is not set
 # CONFIG_INPUT_MISC is not set
