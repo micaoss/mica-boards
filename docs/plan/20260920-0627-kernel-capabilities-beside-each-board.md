@@ -89,6 +89,27 @@ What changed, and why each correction matters more than the row it fixes:
   silently. That half belongs to the composed root, which is mica-build's.
   This table keeps only the netlink half, bridge and veth.
 
+## The same table, read the other way: policy conditioned on a capability
+
+The rows above answer "does this board PROVIDE capability X". There is a
+second question with the same key and the opposite direction: "should this
+board CARRY policy P", where P exists only because of X. The worked instance
+is in `docs/task/20260920-0720-the-logo-vt-policy-is-cx3576s.md`: the logind
+drop-in that keeps tty1 idle exists because cx3576 draws a kernel boot logo,
+and it would be wrong on a board that draws none -- on uefi-x64 it would
+remove a VT login that works to protect a logo that does not exist.
+
+So when a policy file is conditioned on a capability, it should be SELECTED BY
+THE SAME FLAG THAT PROVIDES THE CAPABILITY rather than copied per board: a
+policy selected by its own precondition cannot outlive it. Today that means
+the board's own overlay, because only one board has the capability; the moment
+a second one does, the drop-in should move behind the flag that turns
+`CONFIG_LOGO` on rather than be duplicated.
+
+This is not proposed as machinery -- there is one instance and one instance
+does not need a mechanism. It is written down so that the second instance is
+recognised as the same shape instead of being solved again.
+
 ## The requirement this vocabulary CANNOT hold, named rather than omitted
 
 **cgroup v2 must be the unified hierarchy at boot.** It selects podman's v2

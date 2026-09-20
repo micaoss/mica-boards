@@ -70,3 +70,13 @@ to keep idle -- and it is the board to look at first if a boot logo is ever
 wanted beyond cx3576: it would need `CONFIG_LOGO`, the `mklogo.py` hook in its
 kernel prepare step, `fbcon=logo-pos:` in its forced command line, and only
 then this drop-in. Four things, in that order, and the drop-in last.
+
+## What a person with a monitor meets today, stated plainly
+
+Putting the three boards' state in the form someone can picture: uefi-x64 has
+no logo and, with the enablement link dropped in composition, no tty1 getty
+either -- so tty1 shows kernel messages and then nothing. No logo, no prompt,
+a dead VT. That is the concrete shape of the composer defect on a generic
+board, and it is a better sentence to put to a user than "the enablement
+symlink is absent". cx3576 is the one board where tty1 is deliberately quiet
+and has something to show for it.
