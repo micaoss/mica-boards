@@ -8,3 +8,4 @@
 - [20260919-2130-s905x5m-as-a-release-target](20260919-2130-s905x5m-as-a-release-target.md) -- open
 - [20260920-cx3576-first-hardware-capture](20260920-cx3576-first-hardware-capture.md) -- open
 - [20260920-user-namespaces-and-container-kernel-facts](20260920-user-namespaces-and-container-kernel-facts.md) -- done
+- [20260920-the-floor-and-the-declared-features](20260920-the-floor-and-the-declared-features.md) -- done
