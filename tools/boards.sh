@@ -10,6 +10,14 @@
 #   bash tools/boards.sh producers <board>                      the rows of tools/deb/producers.sh that build its packages
 #   bash tools/boards.sh check                                  both files' form, and that they are the tree's
 #   bash tools/boards.sh component-is <board> <component> <dir> <dir> holds exactly that component's files
+#   bash tools/boards.sh bundle-is <board> <dir>               <dir> holds exactly the board's WHOLE bundle:
+#                                                              every file row of outputs.tsv, whatever its
+#                                                              component. This is the shape a consumer FETCHES
+#                                                              -- the board component's files at the root,
+#                                                              kernel/, uboot/ and firmware/ beside them -- and
+#                                                              the shape `make offline` must assemble, so that a
+#                                                              consumer building from source and one building
+#                                                              from a release read the same thing.
 #   bash tools/boards.sh pool-has <board> <pool dir>            <pool dir> holds exactly one archive of each of its packages
 #                                                               (a pool built for every board holds others' too)
 #
@@ -107,6 +115,13 @@ component-is:4)
     [ -d "$4" ] || die "$4 is not a directory"
     diff <(files "$2" "$3") <(cd "$4" && find . -type f | sed 's|^\./||' | sort) >"${WORK}/diff" ||
         die "$4 is not the $2 $3 component its outputs.tsv lists: $(grep '^[<>]' "${WORK}/diff" | sed 's/^</missing/; s/^>/unexpected/' | tr '\n' ';')"
+    ;;
+bundle-is:3)
+    known "$2"
+    [ -d "$3" ] || die "$3 is not a directory"
+    diff <(outputs "$2" | sed -n 's/^file\t[^\t]*\t//p' | sort) \
+        <(cd "$3" && find . -type f -o -type l | sed 's|^\./||' | sort) >"${WORK}/diff" ||
+        die "$3 is not the $2 bundle its outputs.tsv lists: $(grep '^[<>]' "${WORK}/diff" | sed 's/^</missing/; s/^>/unexpected/' | tr '\n' ';')"
     ;;
 pool-has:3)
     known "$2"

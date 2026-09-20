@@ -29,5 +29,36 @@ elif [[ "${out}" == *"kernel-ci-outputs-test.tar is missing"* ]]; then pass "a m
 mkdir -p "${T}/none"
 if bash tools/ci-outputs.sh unpack "${T}/none" >/dev/null 2>&1; then fail "an empty download was accepted"; else pass "no output tar at all: refused"; fi
 
+# tools/boards.sh bundle-is: the ASSEMBLED shape, which `make offline` must
+# produce and a consumer fetches from a release. Built here from outputs.tsv
+# itself rather than from a kernel build, so the check is exercised on every
+# run instead of only on a machine that has just built four boards.
+for board in $(bash tools/boards.sh list); do
+    B="${T}/bundle-${board}"
+    while IFS= read -r path; do
+        mkdir -p "${B}/$(dirname "${path}")"
+        : >"${B}/${path}"
+    done < <(grep -v '^#' "boards/${board}/outputs.tsv" | awk -F'\t' '$1 == "file" { print $3 }')
+    if bash tools/boards.sh bundle-is "${board}" "${B}" 2>/dev/null; then
+        pass "bundle-is accepts ${board}'s whole bundle"
+    else
+        fail "bundle-is refuses a ${board} bundle holding exactly its outputs.tsv files"
+    fi
+    # One file per direction, so each refusal is provably about its own defect.
+    : >"${B}/unexpected-file"
+    if bash tools/boards.sh bundle-is "${board}" "${B}" 2>/dev/null; then
+        fail "bundle-is accepts a ${board} bundle with a file outputs.tsv does not list"
+    else
+        pass "bundle-is refuses an unlisted file in ${board}'s bundle"
+    fi
+    rm "${B}/unexpected-file"
+    rm "${B}/board.env"
+    if bash tools/boards.sh bundle-is "${board}" "${B}" 2>/dev/null; then
+        fail "bundle-is accepts a ${board} bundle missing board.env"
+    else
+        pass "bundle-is refuses a missing file in ${board}'s bundle"
+    fi
+done
+
 echo "ci-outputs-test: ${PASS_N} passed, ${FAIL_N} failed"
 [ "${FAIL_N}" -eq 0 ]
