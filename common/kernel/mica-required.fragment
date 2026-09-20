@@ -164,6 +164,47 @@ CONFIG_BLK_CGROUP_IOCOST=y
 CONFIG_BLK_CGROUP_IOLATENCY=y
 # CONFIG_BLK_CGROUP_IOPRIO is not set
 
+# PRESSURE STALL INFORMATION, 2026-09-20, ON by the same test and therefore
+# uniform: `ManagedOOMMemoryPressure=` and `ManagedOOMSwap=` are systemd unit
+# keys a product can set, and systemd-oomd is built on /proc/pressure. PSI ON
+# is the CAPABILITY; running systemd-oomd and setting those keys is a POLICY
+# this does not decide and does not enable. PSI_DEFAULT_DISABLED stays off, or
+# the capability would need a command-line word to exist.
+CONFIG_PSI=y
+# CONFIG_PSI_DEFAULT_DISABLED is not set
+
+# PERSISTENT STORE, so a board can say why it rebooted. Every board's forced
+# command line carries panic=5 and the hardware boards run watchdogs, so a
+# panic-then-reboot is designed behaviour; without pstore the evidence of one
+# is gone at the reset. The BACKEND is per board and lives beside each board's
+# own configuration: ramoops into a reserved region on cx3576 and s905x5m,
+# EFI variables on the two UEFI boards. Collecting what it records is
+# systemd-pstore, in the composed root, which is mica-build's half: this
+# symbol makes the evidence exist and that unit is what keeps it.
+CONFIG_PSTORE=y
+
+# The scattered cgroup symbols, OFF uniformly and recorded here so the next
+# defconfig bump cannot re-scatter them. Each was y on some boards and n on
+# others by upstream accident, and none passes the test above: no podman flag
+# and no systemd unit key reaches hugetlb.*, rdma.max, misc.max,
+# net_prio.ifpriomap or net_cls.classid; TASKSTATS is delay accounting for
+# tools this workspace does not ship (0 occurrences in systemd v257's
+# src/core/cgroup.c); CGROUP_PERF is a perf_event cgroup nothing here programs.
+#
+# TASKSTATS TAKES TASK_IO_ACCOUNTING WITH IT -- /proc/<pid>/io stops existing --
+# so that was checked rather than assumed: no source tree in this workspace
+# (mica-core/crates, mica-build/build/src, mica-system-base/src,
+# mica-podman/deb) reads it, and container IO accounting comes from the
+# cgroup's io.stat rather than per-process counters. If something ever needs
+# per-process IO, this is the line to revisit and the reason is here.
+# CONFIG_CGROUP_HUGETLB is not set
+# CONFIG_CGROUP_RDMA is not set
+# CONFIG_CGROUP_MISC is not set
+# CONFIG_CGROUP_NET_PRIO is not set
+# CONFIG_CGROUP_NET_CLASSID is not set
+# CONFIG_CGROUP_PERF is not set
+# CONFIG_TASKSTATS is not set
+
 # Firewall: the kernel side of an nftables front-end, with iptables-nft as the
 # reference because that is the surface Debian's iptables package provides.
 # The citations into iptables 1.8.11 and the per-symbol table are in

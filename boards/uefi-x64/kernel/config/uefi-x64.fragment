@@ -227,3 +227,17 @@ CONFIG_LOGO_LINUX_CLUT224=y
 # fbdev emulation the logo would appear and then vanish, and "I saw a logo
 # once" is a worse diagnostic than the blank tty1 it replaces.
 CONFIG_DRM_FBDEV_EMULATION=y
+
+# THE pstore BACKEND OF A UEFI MACHINE: EFI variables. The shared floor sets
+# CONFIG_PSTORE and leaves the medium to the board, because a generic UEFI
+# machine has no reserved RAM region to put a ramoops in -- its memory map is
+# the firmware's. Measured bounds, since a diagnostic that fills somebody's
+# NVRAM is worse than none: efi-pstore writes one variable per record of
+# record_size bytes, 1024 by default (drivers/firmware/efi/efi-pstore.c:13),
+# and the kernel refuses a write that the firmware's own
+# QueryVariableInfo says will not fit (check_var_size, drivers/firmware/efi/
+# vars.c:26, falling back to a 64 KiB ceiling where the firmware does not
+# implement it). What bounds ACCUMULATION is systemd-pstore, which copies the
+# records out and unlinks them; without that unit the variables stay.
+CONFIG_EFI_VARS_PSTORE=y
+# CONFIG_EFI_VARS_PSTORE_DEFAULT_DISABLE is not set
