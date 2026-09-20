@@ -52,6 +52,11 @@ reviewed input that must equal the resolved config. Adding a symbol to the
 floor therefore means re-recording every board's config with
 `make <board>-kernel-config` and putting those diffs up for review, which is
 the mechanism that makes a floor change visible instead of silent.
+It is worth naming the contrast: that is exactly the property the composer
+defect of the same evening showed was missing elsewhere -- a declaration
+proved against an input with nothing comparing it to the output -- and here
+it was already built, which is why this experiment could not quietly
+succeed.
 
 Boot-time cost is NOT measured. It needs a booted system with a timer, which
 this repository cannot do; the bench is where that question belongs.
