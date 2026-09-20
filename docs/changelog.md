@@ -2,6 +2,18 @@
 
 ## 2026-09-20 [progress]
 
+Measured while costing the boot logo, and it corrects a shorthand rather than
+only adding a number: a LOCAL CROSS build of the uefi-arm64 kernel reproduced
+byte for byte what a NATIVE arm64 runner published
+(`kernel.uefi-arm64.20260916-0857`, `Image` 24537600). So cross-versus-native
+is not the variable that decides whether two builds agree -- whether they use
+the same pinned toolchain is. The emulated-on-target pool agreed with the
+native one, mica-core's Rust disagreed with a DIFFERENT cross toolchain, and
+this agrees with the SAME bsp compiler used as a cross.
+
+
+## 2026-09-20 [progress]
+
 First hardware observation of Mica OS on cx3576, read out of the console
 capture rather than summarised: the vendor loader verified this project's key
 on real silicon (`sha256,rsa2048:mica+ OK` for kernel, fdt and ramdisk), the

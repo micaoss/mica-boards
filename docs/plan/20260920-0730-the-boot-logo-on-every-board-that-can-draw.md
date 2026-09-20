@@ -90,6 +90,19 @@ uefi-arm64 one is worth its own sentence: **a local CROSS build reproduced
 what a native arm64 runner published**, which this repository had not measured
 before and which makes the arm64 numbers here comparable with released bytes.
 
+**And it corrects the shorthand this workspace has been using, mine included:
+cross-versus-native is not the variable -- whether the two builds use the same
+pinned toolchain is.** There are three cases to explain, not two: a container
+running ON the target reproduces (the emulated arm64 pool matched the native
+one byte for byte); a build that cross-compiles with a DIFFERENT toolchain
+differs (mica-core's Rust, with its cross-toolchain note and different
+`-C metadata`); and this one, the same pinned bsp compiler used once as a
+cross and once natively, which agrees. The first and third differ in the
+container's platform and agree in the toolchain; the second is the only case
+where the toolchain moved. The comparison is real rather than two native
+builds in disguise: `build.yml` maps arm64 to `ubuntu-24.04-arm` and the step
+is named "the <board> kernel, native".
+
 The two logo deltas differ by an order of magnitude for a boring reason: the
 same 720x405 CLUT224 payload is about 291 KB of index bytes, which the x86
 `bzImage` compresses to 20 KB and the arm64 `Image` carries uncompressed.
