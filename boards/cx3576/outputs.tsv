@@ -25,6 +25,7 @@ file	kernel	kernel/dev/Image
 file	kernel	kernel/dev/System.map
 file	kernel	kernel/dev/config
 file	kernel	kernel/dev/kernel.release
+file	kernel	kernel/dev/mica-required.fragment
 file	kernel	kernel/dev/modules.tar
 file	kernel	kernel/dev/regdb-certs.pem
 file	kernel	kernel/dev/rk3576-src.dtb
@@ -32,6 +33,7 @@ file	kernel	kernel/prod/Image
 file	kernel	kernel/prod/System.map
 file	kernel	kernel/prod/config
 file	kernel	kernel/prod/kernel.release
+file	kernel	kernel/prod/mica-required.fragment
 file	kernel	kernel/prod/modules.tar
 file	kernel	kernel/prod/regdb-certs.pem
 file	kernel	kernel/prod/rk3576-src.dtb

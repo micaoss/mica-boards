@@ -121,6 +121,7 @@ RUN set -eu; first=""; \
         out="/out/${profile}"; mkdir -p "${out}"; \
         cp /ksrc/arch/arm64/boot/Image /ksrc/System.map /kernel.release /modules.tar "/${KERNEL_DTB_ARTIFACT}" /regdb-certs.pem "${out}/"; \
         cp /ksrc/.config "${out}/config"; \
+        cp /mica-required.fragment "${out}/mica-required.fragment"; \
     done; \
     [ -n "${first}" ] || { echo "error: KERNEL_PROFILES names no profile" >&2; exit 1; }
 
@@ -133,5 +134,13 @@ RUN set -eu; first=""; \
 # board in front of you (RFCT-351). NOT vmlinux (173 MiB with DEBUG_INFO=y);
 # it stays in the build stage. The bundle producer stages named files, so a
 # new file here reaches the bundle only when it is named there.
+#
+# AND THE FLOOR TRAVELS WITH IT. mica-build asserts the shared floor against
+# the config of the board bundle it fetched at its pin
+# (build/src/kernel-package.ts), and it must not keep a copy of the symbol
+# list: a private copy of another repository's truth drifts the first time the
+# fragment moves. The fragment that resolved this config ships beside it, so
+# both ends of that assertion are one fetched artifact and a stale bundle
+# fails its own floor instead of passing quietly.
 FROM scratch AS artifact
 COPY --from=build /out/ /

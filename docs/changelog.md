@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-09-20 17:00 [progress]
+
+The shared kernel floor is a file row of every board bundle:
+`common/kernel/mica-required.fragment` ships beside the config it resolved,
+as `kernel/mica-required.fragment` on the UEFI boards and under
+`kernel/dev/` and `kernel/prod/` on the FIT boards, one `outputs.tsv` row
+each. mica-build asserts the floor against the config of the bundle it fetched
+at its pin (`build/src/kernel-package.ts`) and keeps no copy of the symbol
+list -- the reader this replaces carried one and decayed. Both halves of the
+fragment are asserted there, the `=y` lines and the `# ... is not set`
+lines, so the gap found earlier today is not rebuilt one repository further
+out; a stale bundle fails its own floor instead of passing quietly. The off
+half also ran on cx3576 and s905x5m for the first time in CI 35521519448 and
+holds on both, although their vendor inputs carry six of the nine symbols
+`=y` before the floor is merged over them. Recorded in
+`docs/task/20260920-1700-the-floor-travels-with-the-config.md`.
+
 ## 2026-09-20 16:00 [progress]
 
 A `# CONFIG_X is not set` line in a kernel fragment is a REQUEST: kconfig

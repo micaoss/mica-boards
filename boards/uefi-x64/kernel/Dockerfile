@@ -244,3 +244,11 @@ COPY --from=build /ksrc/${KERNEL_IMAGE_PATH} /
 COPY --from=build /ksrc/.config /config
 COPY --from=build /modules.tar /
 COPY --from=build /kernel.release /
+# THE FLOOR TRAVELS WITH THE CONFIG IT PRODUCED. mica-build asserts the shared
+# floor against the config of the board bundle it fetched at its pin
+# (build/src/kernel-package.ts), and it must not keep a copy of the symbol list:
+# a private copy of another repository's truth drifts the first time the
+# fragment moves. Shipping the fragment beside the config it resolved to makes
+# the two ends of that assertion one fetched artifact, and a stale bundle fails
+# its own floor instead of passing quietly.
+COPY --from=build /mica-required.fragment /mica-required.fragment

@@ -17,3 +17,4 @@
 - [20260920-0820-my-vectors-are-a-stale-copy](20260920-0820-my-vectors-are-a-stale-copy.md) -- done
 - [20260920-0900-tier-two-uniformity-and-pstore](20260920-0900-tier-two-uniformity-and-pstore.md) -- open
 - [20260920-1600-a-fragment-off-line-is-a-request](20260920-1600-a-fragment-off-line-is-a-request.md) -- done
+- [20260920-1700-the-floor-travels-with-the-config](20260920-1700-the-floor-travels-with-the-config.md) -- done

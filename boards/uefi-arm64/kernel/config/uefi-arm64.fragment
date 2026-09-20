@@ -8,6 +8,14 @@
 # kernel bump shows up as a reviewable diff rather than as a build input nobody
 # saw.
 #
+# Every `# CONFIG_X is not set` line is asserted the same way since 2026-09-20,
+# as "no line turns it on": such a line is a REQUEST kconfig is free to refuse,
+# and nineteen of the ones that used to be here had been refused. What they had
+# in common is worth keeping and asserts nothing -- DRM_PANEL, DRM_BRIDGE,
+# EXTCON, NVMEM, RESET_CONTROLLER and the MDIO/PHY libraries are `select`ed by
+# the drivers that use them, so turning one off means turning off what selects
+# it, which is what the display trim below does.
+#
 # `=y` and not `=m` throughout, and that is the point of the board: it boots
 # root=/dev/dm-0 from a `dm-mod.create=` table with NO INITRAMFS, so nothing can
 # load a module before the root filesystem exists. Everything the kernel needs

@@ -96,8 +96,16 @@ RUN set -eu; eval "export CROSS_COMPILE=\$CROSS_COMPILE_${BUILDARCH}"; first="";
         out="/out/${profile}"; mkdir -p "${out}"; \
         cp /ksrc/arch/arm64/boot/Image /ksrc/System.map /ksrc/include/config/kernel.release /modules.tar "/${KERNEL_DTB_ARTIFACT}" /regdb-certs.pem "${out}/"; \
         cp /ksrc/.config "${out}/config"; \
+        cp /mica-required.fragment "${out}/mica-required.fragment"; \
     done; \
     [ -n "${first}" ] || { echo "error: KERNEL_PROFILES names no profile" >&2; exit 1; }
 
+# THE FLOOR TRAVELS WITH THE CONFIG IT PRODUCED. mica-build asserts the shared
+# floor against the config of the board bundle it fetched at its pin
+# (build/src/kernel-package.ts), and it must not keep a copy of the symbol
+# list: a private copy of another repository's truth drifts the first time the
+# fragment moves. The fragment that resolved each profile's config ships beside
+# it, so both ends of that assertion are one fetched artifact and a stale
+# bundle fails its own floor instead of passing quietly.
 FROM scratch AS artifact
 COPY --from=build /out/ /

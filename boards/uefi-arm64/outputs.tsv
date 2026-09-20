@@ -15,4 +15,5 @@ file	board	trust/verity-signer.cert.pem
 file	kernel	kernel/Image
 file	kernel	kernel/config
 file	kernel	kernel/kernel.release
+file	kernel	kernel/mica-required.fragment
 file	kernel	kernel/modules.tar
