@@ -1,6 +1,6 @@
 # 20260921-0911-s905x5m-forced-line-and-its-declaration The board declared a command line its kernel was not built with
 
-- **status**: done
+- **status**: landed, unreleased (s905x5m parked)
 - **priority**: P1
 - **owner**: tdpnmgkr
 - **createdAt**: 2026-09-21 09:11
@@ -69,3 +69,28 @@ their single source. s905x5m was the only member.
 
 **A new release is required for the fix to reach anything**; the bundle at
 `20260920-1536` cannot be corrected in place.
+
+
+## Parked on user instruction, 2026-09-21
+
+The user closed this line of work: **s905x5m has more to fix than this, and
+the board will be taken up as its own round later.** So:
+
+- **The repair is on `main` (`e1e8231`, CI 35581935623 green) and is in no
+  release.** `s905x5m.20260920-1536` is still the latest release of this board
+  and still carries the wrong forced line; nothing a consumer can fetch has the
+  fix.
+- **`mica-build`'s `s905x5m-prod` job stays red** until that release exists.
+  That is expected, not a regression, and it is the correct behaviour of
+  `build/src/kernel-package.ts:149` — the bundle really is inconsistent.
+- **No release was cut.** Whoever picks the board up cuts one as part of that
+  round, from `main` at the time, not from here.
+
+**And the question this record does NOT answer, which is why the board is
+parked:** whether the device failing to boot is caused by anything in the
+2026-09-20 round. The forced line the device actually boots with is the OLD,
+known-good one, so this defect breaks the product build and should not change
+how the hardware behaves. The only change touching the early display path is
+`CONFIG_LOGO=y` with a replaced 720x405 PPM. **No console capture was taken, so
+that is a hypothesis with a location and no evidence** — do not open the next
+round by assuming it.
