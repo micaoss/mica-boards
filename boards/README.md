@@ -43,7 +43,8 @@ boards/<board>/
     Dockerfile.dockerignore
     configure.sh        FIT: the resolved configuration and its floor
     build.sh            FIT: the compile and the artefacts
-    config/             the committed configuration and fragments
+    config/             the committed configuration and fragments -- NOT the same kind of file on
+                        both families; see *Which file says how a kernel was configured*
     dts/, patches/      FIT: device tree and patches (with a series file)
     hooks/              FIT: the board's hooks (below)
   loader/
@@ -91,6 +92,46 @@ kernel command line, written for both profiles (mica docs decision
   the UKI with `.cmdline` = `BOARD_CMDLINE_ARGS` + the profile token; whether a
   modified UKI is refused depends on UEFI Secure Boot, which is the assembly's
   and the platform's (mica-build).
+
+## Which file says how a kernel was configured
+
+**The committed `kernel/config/` is not the same kind of file on the two
+families, and nothing about reading one tells you which kind you have.** Both
+parse, both carry the symbols, and the answers usually agree -- two
+repositories read these on 2026-09-20 to ask whether `CONFIG_MEMCG` was
+present at the pinned releases, one correctly and one not, and both got `y`.
+
+- **UEFI boards: the committed file is the RESOLVED OUTPUT.**
+  `kernel/config/<board>.config` is what `olddefconfig` produced, recorded, and
+  the `gate` stage of the kernel Dockerfile refuses a build whose resolution
+  differs from it. Reading it in the tree answers what the kernel has.
+- **FIT boards: the committed file is a VENDOR INPUT.**
+  `kernel/config/kernel-<soc>.config` is the vendor's configuration, over which
+  the build merges `common/kernel/mica-required.fragment` and the board
+  fragments before `olddefconfig` resolves the result. **Reading it does not
+  say what the kernel has** -- the floor is merged after it, and a symbol it
+  sets can be overridden, dropped for unmet dependencies, or turned back on by
+  a `select`.
+
+**For a FIT board the answer is in the published component**: `kernel/dev/config`
+and `kernel/prod/config` of `kernel.<board>.<release>`, at the digest that
+board's release lock names. The resolved configuration is an artefact
+precisely so that this question has an answer outside the builder.
+
+**The profile axis exists only on the FIT boards.** uefi-x64 and uefi-arm64
+publish one `kernel/config`; cx3576 and s905x5m publish `kernel/dev/config`
+and `kernel/prod/config`. So four boards have **six** configurations, and the
+two cells a four-by-two grid would leave blank do not exist rather than having
+been missed.
+
+**And the field that makes reading one profile feel safe is the field that
+matches.** Measured on the published `kernel.cx3576.20260920-1536`: of the
+seven files in each profile directory, `Image`, `System.map` and `config`
+differ between dev and prod, while `kernel.release`, `modules.tar`,
+`regdb-certs.pem` and the device tree are **byte-identical** -- one source
+compiled once, relinked with a different command line. A check that compares
+`kernel.release` across the two profiles compares the one field that cannot
+tell them apart.
 
 `common/` is what every board takes unchanged:
 
