@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-21 09:11 [fix]
+
+`s905x5m.20260920-1536` shipped a kernel whose forced command line is not the
+one the same release's `board.env` declares: the logo round added
+`fbcon=logo-pos:center,logo-count:1 vt.global_cursor_default=0` to `board.env`
+and not to `kernel/config/signed-boot.fragment`, which is where this board
+keeps `CONFIG_CMDLINE`. Measured in the published component, both profiles. On
+a FIT board the built-in line is what the device boots with, so it is not
+cosmetic, and the assembly refuses to package it
+(`mica-build:build/src/kernel-package.ts:149`, correct as written). The
+fragment now carries the declared line and
+`boards/s905x5m/tests/kernel-cmdline-test.sh` holds the two equal -- cx3576
+had that test and this board did not, which is the whole gap. A new release is
+required for the fix to reach anything. Recorded in
+`docs/task/20260921-0911-s905x5m-forced-line-and-its-declaration.md`.
+
 ## 2026-09-20 17:30 [progress]
 
 The lock vectors are mica's, at the commit `tools/vectors.pin` names, with

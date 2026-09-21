@@ -138,8 +138,13 @@ board-contract-test:
 kernel-config-test:
 	bash tools/kernel-config-test.sh
 
+# Both FIT boards: the kernel forces its built-in line, so the board's
+# declaration and the line the device boots with have to be one statement.
+# s905x5m keeps it in a fragment and cx3576 in its committed vendor config;
+# only this pair of tests spans that difference.
 kernel-cmdline-test:
 	bash boards/cx3576/tests/kernel-cmdline-test.sh
+	bash boards/s905x5m/tests/kernel-cmdline-test.sh
 bench-collector-test:
 	bash boards/cx3576/tests/bench/collector-test.sh
 mac-stable-test:
